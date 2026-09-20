@@ -20,6 +20,7 @@ jobs:
         run: |
           mkdir -p evidence/ci
           bash tests/run-domain.sh | tee evidence/ci/domain.txt
+      - uses: android-actions/setup-android@v3
       - name: Install verification tools
         run: sdkmanager "build-tools;36.0.0"
       - name: Verify shipped APK identity

@@ -31,5 +31,5 @@ run('java','-jar',bt/'lib/apksigner.jar','verify','--verbose','--print-certs',de
 with zipfile.ZipFile(dest) as z:
  assert not any(n.endswith(('.html','.js','.mjs','.css')) for n in z.namelist())
  assert all(b'Landroid/webkit/WebView;' not in z.read(n) for n in z.namelist() if n.endswith('.dex'))
-receipt={'sha256':hashlib.sha256(dest.read_bytes()).hexdigest(),'bytes':dest.stat().st_size,'versionCode':6,'minSdk':26,'targetSdk':36,'webRuntime':False,'physicalDeviceTested':False}
+receipt={'sha256':hashlib.sha256(dest.read_bytes()).hexdigest(),'bytes':dest.stat().st_size,'versionCode':6,'minSdk':26,'targetSdk':36,'webRuntime':False,'physicalDeviceTested':False,'sourceSha256':{str(p.relative_to(root)):hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(app.rglob('*')) if p.is_file()}}
 (dest.parent/'release.json').write_text(json.dumps(receipt,indent=2)+'\n');print(json.dumps(receipt))

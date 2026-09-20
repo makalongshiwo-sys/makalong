@@ -1,0 +1,52 @@
+name: Native Android verification
+on:
+  push:
+    paths: ['app/**', 'tests/**', 'build.py', '.github/workflows/native-verify.yml', 'releases/**']
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Domain regression
+        run: |
+          mkdir -p evidence/ci
+          bash tests/run-domain.sh | tee evidence/ci/domain.txt
+      - name: Install verification tools
+        run: sdkmanager "build-tools;36.0.0"
+      - name: Verify shipped APK identity
+        run: |
+          python tests/verify-package.py
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs releases/guanchao-native-preview.apk | tee evidence/ci/signature.txt
+      - name: Enable hardware emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Install and exercise the exact signed preview APK
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: default
+          arch: x86_64
+          profile: pixel_2
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -camera-front none
+          script: python tests/device-smoke.py
+      - name: Evidence and tested package
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-verification-${{ github.sha }}
+          path: |
+            evidence/ci/
+            releases/
+          retention-days: 30

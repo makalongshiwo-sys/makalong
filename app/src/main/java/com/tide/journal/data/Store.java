@@ -1,0 +1,11 @@
+package com.tide.journal.data;
+import android.content.*;import android.database.*;import android.database.sqlite.*;import java.util.*;
+public final class Store extends SQLiteOpenHelper {
+ public Store(Context c){super(c.getApplicationContext(),"tide-native.db",null,1);}public void onCreate(SQLiteDatabase db){db.execSQL("CREATE TABLE cache(key TEXT PRIMARY KEY,payload TEXT NOT NULL,fetched INTEGER NOT NULL)");db.execSQL("CREATE TABLE inbox(id TEXT PRIMARY KEY,title TEXT NOT NULL,body TEXT NOT NULL,at INTEGER NOT NULL,notified INTEGER NOT NULL DEFAULT 0)");}public void onUpgrade(SQLiteDatabase d,int a,int b){throw new IllegalStateException("需显式迁移");}
+ public static final class Cached {public String payload;public long fetched;}
+ public synchronized void put(String k,String s,long t){ContentValues v=new ContentValues();v.put("key",k);v.put("payload",s);v.put("fetched",t);getWritableDatabase().insertWithOnConflict("cache",null,v,SQLiteDatabase.CONFLICT_REPLACE);}
+ public synchronized Cached get(String key){try(Cursor c=getReadableDatabase().rawQuery("SELECT payload,fetched FROM cache WHERE key=?",new String[]{key})){if(!c.moveToFirst())return null;Cached v=new Cached();v.payload=c.getString(0);v.fetched=c.getLong(1);return v;}}
+ public synchronized void add(String id,String title,String body,long at){ContentValues v=new ContentValues();v.put("id",id);v.put("title",title);v.put("body",body);v.put("at",at);getWritableDatabase().insertWithOnConflict("inbox",null,v,SQLiteDatabase.CONFLICT_IGNORE);getWritableDatabase().execSQL("DELETE FROM inbox WHERE id NOT IN (SELECT id FROM inbox ORDER BY at DESC LIMIT 1000)");}
+ public synchronized boolean sent(String id){try(Cursor c=getReadableDatabase().rawQuery("SELECT notified FROM inbox WHERE id=?",new String[]{id})){return c.moveToFirst()&&c.getInt(0)==1;}}public synchronized void mark(String id){ContentValues v=new ContentValues();v.put("notified",1);getWritableDatabase().update("inbox",v,"id=?",new String[]{id});}
+ public synchronized List<String[]> notices(){List<String[]>v=new ArrayList<>();try(Cursor c=getReadableDatabase().rawQuery("SELECT id,title,body,at,notified FROM inbox ORDER BY at DESC LIMIT 60",null)){while(c.moveToNext())v.add(new String[]{c.getString(0),c.getString(1),c.getString(2),c.getString(3),c.getString(4)});}return v;}
+}

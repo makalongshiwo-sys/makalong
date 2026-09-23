@@ -1,0 +1,1 @@
+PASS 3860 assertions: six periods, independent indicator fixtures, stale/gap/closed gates, fixed-box reversal, nine teaching models

@@ -5,3 +5,8 @@ local.properties
 signing/
 *.jks
 *.keystore
+
+*.idsig
+evidence/ci/logcat*.txt
+evidence/ci/notifications.txt
+evidence/ci/last-ui.xml

@@ -1,0 +1,21 @@
+{
+  "status": "passed",
+  "apkSha256": "42c135d7eb9391c737a35c9434764b8fd8e4eed880a040078e0d3f98c5f29d48",
+  "device": "15",
+  "steps": [
+    "tap ETH",
+    "tap 日线",
+    "tap 课堂",
+    "tap 进入实验  →",
+    "tap 新年利息",
+    "tap 明白了",
+    "tap 下一步",
+    "tap 资金",
+    "tap 研报",
+    "tap 打开这一期",
+    "tap 提醒",
+    "tap 发送本机测试通知"
+  ],
+  "physicalDevice": false,
+  "cloudPushVerified": false
+}

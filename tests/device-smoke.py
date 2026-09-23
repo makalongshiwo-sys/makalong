@@ -32,6 +32,9 @@ try:
  click('提醒');capture('11-alerts');adb('shell','pm','grant','com.tide.journal','android.permission.POST_NOTIFICATIONS');click('发送本机测试通知',scrolls=4);time.sleep(1)
  notice=adb('shell','dumpsys','notification','--noredact').decode(errors='replace');(out/'notifications.txt').write_text(notice);assert '观潮测试通知' in notice,'No submitted Android notification'
  adb('shell','input','keyevent','3');time.sleep(.5);adb('shell','am','start','-W','-n','com.tide.journal/.MainActivity');time.sleep(1);capture('12-resumed')
+ adb('install','-r','releases/native-instrumentation.apk')
+ instrument=adb('shell','am','instrument','-w','com.tide.journal.test/com.tide.journal.test.NativeCheck').decode(errors='replace');(out/'instrumentation-output.txt').write_text(instrument);assert 'INSTRUMENTATION_CODE: -1' in instrument and '"status":"passed"' in instrument,instrument
+ adb('pull','/sdcard/Android/data/com.tide.journal/files/verification',str(out/'instrumentation'))
  logs=adb('logcat','-d','-v','brief').decode(errors='replace');(out/'logcat.txt').write_text(logs);assert 'FATAL EXCEPTION' not in logs,'Runtime crash'
  result={'status':'passed','apkSha256':hashlib.sha256(Path('releases/guanchao-native-preview.apk').read_bytes()).hexdigest(),'device':adb('shell','getprop','ro.build.version.release').decode().strip(),'steps':steps,'physicalDevice':False,'cloudPushVerified':False}
  (out/'device-result.json').write_text(json.dumps(result,ensure_ascii=False,indent=2));print(json.dumps(result,ensure_ascii=False))

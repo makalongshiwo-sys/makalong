@@ -1,5 +1,5 @@
 {
-  "sha256": "42c135d7eb9391c737a35c9434764b8fd8e4eed880a040078e0d3f98c5f29d48",
+  "sha256": "cf608b02661e3ad175d9fad737a0b39d74ed0cd6f6026bff9e4cee1932a4ddb4",
   "bytes": 78569,
   "versionCode": 6,
   "minSdk": 26,
@@ -17,7 +17,7 @@
     "app/src/main/java/com/tide/journal/domain/Lessons.java": "c106b976c22cbeaa95ea7a181665b03fe08af991d25b7ed8edbcd27364fc7cec",
     "app/src/main/java/com/tide/journal/domain/Market.java": "fc4ecaca665080283d6daf675e6b1946bbec50e6f6c605a6904f7622cfc57f78",
     "app/src/main/java/com/tide/journal/sync/AlertJob.java": "8cccf68f26045eb333379aee12ee29b24a574d7b6d5ea04200f7fbad886cacbc",
-    "app/src/main/java/com/tide/journal/ui/CandleChart.java": "d221e49a2cb671c0305251b91bb54a119e9055108cde52977164be8bfcb361f2",
+    "app/src/main/java/com/tide/journal/ui/CandleChart.java": "32b758b6dbc74290eaea876ca2e28dad46dd0e54a69ca2ca7cc7ddb6107be92f",
     "app/src/main/java/com/tide/journal/ui/SpatialLesson.java": "a197cfffa751576e91979baf85c1e9cebc295a28186192c320ce14f3a1fbc0ad",
     "app/src/main/java/com/tide/journal/ui/Ui.java": "85f57fa6e99d8c7613b78be97f56868cc09ba0f05c030fa32a9c5b25357dadd8",
     "app/src/main/res/drawable/icon.xml": "4b748960bf4581f8e1946a3cdce8b1eccb4c75a40c17d9efd536e53ecb8f02aa",

@@ -1,0 +1,129 @@
+{
+  "reviewedAt": "2026-09-23T01:15:36.735794+00:00",
+  "gitHead": "1fefb0897699f73184494dffdcd0c342d91facee",
+  "scope": "Independent read-only closeout of two AlertJob P2 findings; evidence-only writes",
+  "verdict": "Both scoped source defects fixed; current APK live validation remains pending matching receipt",
+  "closedFindings": [
+    "schedule preserves existing 610/611 while enabled; explicit disable cancels both",
+    "cached and bundled report fallback records cloud failure in lastResult"
+  ],
+  "testResults": [
+    {
+      "command": "python3 evidence/review/run-alert-review.py",
+      "exitCode": 0,
+      "log": "evidence/review/alert-review.txt"
+    },
+    {
+      "command": "bash tests/run-domain.sh",
+      "exitCode": 0,
+      "log": "evidence/review/domain.txt"
+    },
+    {
+      "command": "python3 tests/verify-package.py",
+      "exitCode": 0,
+      "log": "evidence/review/package.txt"
+    }
+  ],
+  "alertReviewAssertions": 18,
+  "domainAssertions": 3860,
+  "sourceSha256": {
+    "app/src/main/AndroidManifest.xml": "782951a57d598ba4f658a7db03d7493e4136f62286990ed1af775e33f64c596b",
+    "app/src/main/assets/etf-snapshot.json": "b9cd6da5322ddc9a0646ddc157dd53feb9816c03a69468084dbe6c6564be64bd",
+    "app/src/main/assets/lessons.json": "b630891ecb134cc393a371a27064adca0340efc7d20bf0b5f84111048ef324e0",
+    "app/src/main/assets/reports.json": "17bc0c686ad88931366ea38ab0cfe511c336d65a5c7b68e308cb306fec4f854c",
+    "app/src/main/java/com/tide/journal/MainActivity.java": "0024f02abdd3a6583d0cfcb3750dfcc892a8fd4b580e28907d5b87af52372ce1",
+    "app/src/main/java/com/tide/journal/data/Repository.java": "40d493ee375fb00c681c12cbc48c38e3cb99b4d649d87c1a2e2eeddd0adcd907",
+    "app/src/main/java/com/tide/journal/data/Store.java": "08efb5a91715c6c2602bde42c937103b9b714fed9d72d8df3224292c9a6b4704",
+    "app/src/main/java/com/tide/journal/domain/Lessons.java": "c106b976c22cbeaa95ea7a181665b03fe08af991d25b7ed8edbcd27364fc7cec",
+    "app/src/main/java/com/tide/journal/domain/Market.java": "fc4ecaca665080283d6daf675e6b1946bbec50e6f6c605a6904f7622cfc57f78",
+    "app/src/main/java/com/tide/journal/sync/AlertJob.java": "8cccf68f26045eb333379aee12ee29b24a574d7b6d5ea04200f7fbad886cacbc",
+    "app/src/main/java/com/tide/journal/ui/CandleChart.java": "32b758b6dbc74290eaea876ca2e28dad46dd0e54a69ca2ca7cc7ddb6107be92f",
+    "app/src/main/java/com/tide/journal/ui/SpatialLesson.java": "a197cfffa751576e91979baf85c1e9cebc295a28186192c320ce14f3a1fbc0ad",
+    "app/src/main/java/com/tide/journal/ui/Ui.java": "85f57fa6e99d8c7613b78be97f56868cc09ba0f05c030fa32a9c5b25357dadd8",
+    "app/src/main/res/drawable/icon.xml": "4b748960bf4581f8e1946a3cdce8b1eccb4c75a40c17d9efd536e53ecb8f02aa",
+    "app/src/main/res/drawable/notification.xml": "2bb3d19d85fe54864ecb21b5f7ffba9cac691c34ab5b7ff74ae1e6e2d5eb71fa",
+    "app/src/main/res/values/styles.xml": "622a8aed34eebb534f0de58fdc99fb2be26cfa8330cca8747fec008b310849b2"
+  },
+  "harnessSha256": {
+    "evidence/review/AlertJobReview.java": "bef843fa446b0bf2e35f84a49845fd70fbffdb71e3367dc0f6a992c4e58e05e4",
+    "evidence/review/run-alert-review.py": "bece7c2ec8d8f97238f45dc5550b37ac5dd01909cdbe06072340c8eeed4e42dd"
+  },
+  "apkSha256": "cf608b02661e3ad175d9fad737a0b39d74ed0cd6f6026bff9e4cee1932a4ddb4",
+  "observedDeviceReceipt": {
+    "path": "evidence/ci/device-result.json",
+    "fileSha256": "2cdee35938ca02ebf5a33d7fb209d1666a26aa0ed2b2057d671688d55e4b7f04",
+    "status": "passed",
+    "apkSha256": "42c135d7eb9391c737a35c9434764b8fd8e4eed880a040078e0d3f98c5f29d48",
+    "device": "15",
+    "matchesCurrentApk": false
+  },
+  "boundaries": [
+    "JVM tests replace Android scheduling/network/SQLite boundaries; they do not prove device scheduling or delivery",
+    "Existing CI screenshots inspected for cloud report revision and ETF snapshot state; tied to observed older receipt only",
+    "No physical-device, OEM power-management, high-refresh or FCM/OEM push delivery claim",
+    "ETF automatic supplier ingestion remains out of scope; no new scheduled research job",
+    "No product source was edited by this review"
+  ],
+  "verifiedAt": "2026-09-23T01:18:46.213921+00:00",
+  "currentReceipt": {
+    "verdict": "Current APK emulator evidence now matches; the previous APK/receipt mismatch is closed for this tested package",
+    "runId": 35805327741,
+    "commit": "1fefb0897699f73184494dffdcd0c342d91facee",
+    "conclusion": "success",
+    "artifactId": 10727062954,
+    "artifactUrl": "https://github.com/makalongshiwo-sys/makalong/actions/runs/35805327741/artifacts/10727062954",
+    "artifactZipSha256": "ec83d2d29501a073362cdb9008f19270129d4ea9bccd8f035b13c91d86d801d7",
+    "artifactZipVerification": "ZIP digest supplied in ROOT-verified extraction metadata; this reviewer independently rechecked all extracted screenshot hashes",
+    "apkSha256": "cf608b02661e3ad175d9fad737a0b39d74ed0cd6f6026bff9e4cee1932a4ddb4",
+    "matchesReviewedApk": true,
+    "sourceHashesStillMatch": true,
+    "deviceResult": {
+      "status": "passed",
+      "apkSha256": "cf608b02661e3ad175d9fad737a0b39d74ed0cd6f6026bff9e4cee1932a4ddb4",
+      "device": "15",
+      "steps": [
+        "tap ETH",
+        "tap 日线",
+        "tap 课堂",
+        "tap 进入实验  →",
+        "tap 新年利息",
+        "tap 明白了",
+        "tap 下一步",
+        "tap 资金",
+        "tap 研报",
+        "tap 打开这一期",
+        "tap 提醒",
+        "tap 发送本机测试通知"
+      ],
+      "physicalDevice": false,
+      "cloudPushVerified": false
+    },
+    "instrumentation": {
+      "status": "passed",
+      "checks": 31,
+      "fixtureScreenshotsLabeled": true,
+      "physicalDevice": false
+    },
+    "instrumentationExitCode": -1,
+    "fatalExceptionFoundInCapturedLog": false,
+    "screenshotHashChecks": 23,
+    "independentlyViewed": [
+      "evidence/ci/instrumentation/instrumented-lesson-etf.png",
+      "evidence/ci/instrumentation/instrumented-lesson-cuts.png"
+    ],
+    "visualObservation": "ETF zero contribution remains at the grid; ETF negative redemption/net-flow bars and cuts negative difference extend below the open zero grid. These are labeled instructional fixtures, not market observations.",
+    "receiptFilesSha256": {
+      "evidence/ci/device-result.json": "52a340bcd99ea5b13894875d2844d6ea1bc4d5688560bbf066032225675777d7",
+      "evidence/ci/instrumentation/instrumentation.json": "79aca78c9406b08fe430363434bbd9664dcf51066c9bbbd4b1e8943b462c1e93",
+      "evidence/ci/instrumentation-output.txt": "a3c62dfa8f9fe9ef4c46b7d4d780c3a8a8e76e4522f69aa5531cf0a37371f55d",
+      "evidence/device-artifact.json": "fd767f547f9a68ec8878bb8bc53592b6e4bef5891dc1360df5504a63436b41e8",
+      "evidence/ci/logcat.txt": "7bbedfcbc63c1fa94ad7fa9ba8873534aa1cf18f1e2dcc3bcdbc2bf9d87a1334"
+    },
+    "limitations": [
+      "Evidence is from an Android 15 emulator; no physical-device or high-refresh guarantee",
+      "A local Android notification is verified; FCM/OEM remote push and Doze scheduling remain unverified",
+      "ETF automatic supplier ingestion is not established",
+      "No new product tests were added or run in this readback; only supplied evidence and identity were checked"
+    ]
+  }
+}

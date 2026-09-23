@@ -1,6 +1,6 @@
 {
   "status": "passed",
-  "apkSha256": "42c135d7eb9391c737a35c9434764b8fd8e4eed880a040078e0d3f98c5f29d48",
+  "apkSha256": "cf608b02661e3ad175d9fad737a0b39d74ed0cd6f6026bff9e4cee1932a4ddb4",
   "device": "15",
   "steps": [
     "tap ETH",

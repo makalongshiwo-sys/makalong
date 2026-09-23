@@ -1,0 +1,2 @@
+PASS 18 assertions: actual AlertJob schedule preservation, explicit cancellation, scheduler rejection, cached/bundled report-failure logging, successful recovery and disabled subscription.
+BOUNDARY: JVM substitutes for Android, networking and SQLite; no scheduler timing, real-device, GPU or delivery claim.

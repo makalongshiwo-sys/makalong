@@ -1,0 +1,310 @@
+{
+  "schema_version": "2.0",
+  "generated_at": "2026-09-23T01:19:31Z",
+  "evidence_policy": {
+    "max_age_hours": 168
+  },
+  "goal": "以真实 Android 界面、指标与互动课堂替换旧 WebView 原型，保留用户要求的云端内容更新；完整线上服务和真机验收尚未完成。",
+  "scope": [
+    {
+      "scope_id": "native-preview",
+      "description": "可安装的原生测试版、市场图表、九门课堂、报告读取与本机通知",
+      "external_outcome_requirement": "required",
+      "live_validation_requirement": "required"
+    },
+    {
+      "scope_id": "production-services",
+      "description": "即时云推送、ETF 自动供应商同步、手机高刷新率与后台送达",
+      "external_outcome_requirement": "required",
+      "live_validation_requirement": "required"
+    }
+  ],
+  "completion_scope_ids": [],
+  "out_of_scope": [
+    "交易执行和持仓代管",
+    "自动监听其他 ChatGPT 会话",
+    "对公开仓库发布私人账户数据"
+  ],
+  "authority_sources": [
+    "用户明确要求真实原生 Android、GitHub 持续实现及仔细验证",
+    "AGENTS.md",
+    "BLUEPRINT.md",
+    "PUBLISHING.md"
+  ],
+  "accountable_owners": [
+    {
+      "owner_id": "root",
+      "role": "实现、集成、发布和状态真实性"
+    },
+    {
+      "owner_id": "reviewer",
+      "role": "独立审阅及隔离测试"
+    }
+  ],
+  "acceptance_criteria": [
+    {
+      "criterion_id": "NATIVE",
+      "statement": "源码与交付 APK 无 WebView/HTML/JS 运行时，Android 15 可安装交互",
+      "scope_refs": [
+        "native-preview"
+      ],
+      "required_test_layers": [
+        "integration_tests"
+      ]
+    },
+    {
+      "criterion_id": "MATH",
+      "statement": "六周期闭合边界、公式与断档、空数据防护等有独立回归",
+      "scope_refs": [
+        "native-preview"
+      ],
+      "required_test_layers": [
+        "blind_tests"
+      ]
+    },
+    {
+      "criterion_id": "LESSONS",
+      "statement": "全部九门 OpenGL 课堂可渲染互动，负数场景有设备截图",
+      "scope_refs": [
+        "native-preview"
+      ],
+      "required_test_layers": [
+        "integration_tests"
+      ]
+    },
+    {
+      "criterion_id": "PUBLISH",
+      "statement": "GitHub 写入真实 APK 并按哈希读回；报告遵循明确更新才发布",
+      "scope_refs": [
+        "native-preview"
+      ],
+      "required_test_layers": [
+        "live_tests"
+      ]
+    },
+    {
+      "criterion_id": "PUSH",
+      "statement": "真实手机在后台收到云端消息并保留送达回执",
+      "scope_refs": [
+        "production-services"
+      ],
+      "required_test_layers": [
+        "live_tests"
+      ]
+    },
+    {
+      "criterion_id": "ETF",
+      "statement": "自动取得供应商新披露、标记完整性、处理休市与修订",
+      "scope_refs": [
+        "production-services"
+      ],
+      "required_test_layers": [
+        "integration_tests",
+        "live_tests"
+      ]
+    },
+    {
+      "criterion_id": "PHONE",
+      "statement": "用户手机原生界面、高刷新率与后台耗电验收",
+      "scope_refs": [
+        "production-services"
+      ],
+      "required_test_layers": [
+        "live_tests"
+      ]
+    }
+  ],
+  "accepted_exceptions": [],
+  "test_layer_policy": {
+    "blind_tests": {
+      "disposition": "required",
+      "exception_ref": null
+    },
+    "integration_tests": {
+      "disposition": "required",
+      "exception_ref": null
+    },
+    "live_tests": {
+      "disposition": "required",
+      "exception_ref": null
+    }
+  },
+  "handoff_policy": {
+    "disposition": "required",
+    "exception_ref": null
+  },
+  "overall_status": "partial",
+  "external_outcome_status": "partial",
+  "completion_claim": false,
+  "baseline_runs": [
+    {
+      "baseline_id": "legacy-webview",
+      "scope_refs": [
+        "native-preview"
+      ],
+      "input_or_command": "rg -n WebView ../crypto-pulse/android/app/src/main/java/com/tide/journal/MainActivity.java",
+      "observed": "旧应用由 WebView 加载网页资产，与用户要求的原生架构不符。",
+      "expected": "核心界面、图表、课堂、缓存、后台逻辑均由 Android 原生实现。",
+      "status": "red",
+      "evidence_level": "reproduced",
+      "evidence": {
+        "kind": "command_output",
+        "observed_at": "2026-09-20T15:58:35Z",
+        "command_or_source": "rg WebView in original V5 MainActivity",
+        "result_digest": "b4d0da449ec369ddd541a865e6e7ba878bbdf1d2676ef62c03469dbe57a1f72b",
+        "artifact_path": "legacy-baseline.txt"
+      }
+    }
+  ],
+  "slices": [
+    {
+      "slice_id": "native-rebuild",
+      "owner_id": "root",
+      "change": "重建 Java domain/data/ui/sync 与 Android Views/Canvas/OpenGL，修复闭合边界、缓存、通知去重、报告引用、图表密度。",
+      "focused_test": "build.py 签名编译、源码/APK 哈希检查与域回归",
+      "baseline_refs": [
+        "legacy-webview"
+      ],
+      "criterion_refs": [
+        "NATIVE",
+        "MATH",
+        "LESSONS",
+        "PUBLISH"
+      ],
+      "scope_refs": [
+        "native-preview"
+      ],
+      "result": "pass",
+      "evidence": {
+        "kind": "command_output",
+        "observed_at": "2026-09-23T00:51:53Z",
+        "command_or_source": "build.py + apksigner verify; exact SHA256 in release receipt",
+        "result_digest": "290cc055f6db08e773aea8e37622005c9707882034569e3a88e57a4af7fb1d2e",
+        "artifact_path": "build-current.txt"
+      }
+    }
+  ],
+  "blind_tests": [
+    {
+      "test_id": "independent-native-review",
+      "criterion_refs": [
+        "MATH"
+      ],
+      "slice_refs": [
+        "native-rebuild"
+      ],
+      "scope_refs": [
+        "native-preview"
+      ],
+      "result": "pass",
+      "evidence": {
+        "kind": "agent_report",
+        "observed_at": "2026-09-23T01:15:36Z",
+        "command_or_source": "Independent reviewer original reviewedAt: domain3860, AlertJob isolated18, APK structure/source identity; final device readback appended separately",
+        "result_digest": "7bd791b1e82da96773f58fafe85bea995a144eac889d443e155b4c4868bc1bf2",
+        "artifact_path": "review/receipt.json"
+      }
+    }
+  ],
+  "integration_tests": [
+    {
+      "test_id": "android15-exact-apk",
+      "criterion_refs": [
+        "NATIVE",
+        "LESSONS"
+      ],
+      "slice_refs": [
+        "native-rebuild"
+      ],
+      "scope_refs": [
+        "native-preview"
+      ],
+      "result": "pass",
+      "evidence": {
+        "kind": "command_output",
+        "observed_at": "2026-09-23T01:16:45Z",
+        "command_or_source": "GitHub Actions run 35805327741: Android15 UI + instrumentation",
+        "result_digest": "52a340bcd99ea5b13894875d2844d6ea1bc4d5688560bbf066032225675777d7",
+        "artifact_path": "ci/device-result.json"
+      }
+    }
+  ],
+  "live_tests": [
+    {
+      "test_id": "github-apk-readback",
+      "criterion_refs": [
+        "PUBLISH"
+      ],
+      "slice_refs": [
+        "native-rebuild"
+      ],
+      "scope_refs": [
+        "native-preview"
+      ],
+      "result": "pass",
+      "evidence": {
+        "kind": "destination_receipt",
+        "observed_at": "2026-09-23T01:19:31Z",
+        "command_or_source": "git show fetched origin/main:releases/guanchao-native-preview.apk byte comparison after device verification",
+        "result_digest": "ac18018f6e56117cdcc80bc826afdeb35ff82bb8ae9ed6ca92a97a8b89ca1d1a",
+        "artifact_path": "github-readback.json"
+      }
+    }
+  ],
+  "handoffs": [],
+  "external_write_receipts": [
+    {
+      "operation_id": "publish-native-apk",
+      "destination": "https://github.com/makalongshiwo-sys/makalong",
+      "destination_object_id": "1fefb0897699f73184494dffdcd0c342d91facee",
+      "account_or_tenant": "makalongshiwo-sys/makalong",
+      "readback_source": "git show fetched origin/main:releases/guanchao-native-preview.apk byte comparison after device verification",
+      "verified_at": "2026-09-23T01:19:31Z",
+      "scope_refs": [
+        "native-preview"
+      ],
+      "evidence": {
+        "kind": "destination_receipt",
+        "observed_at": "2026-09-23T01:19:31Z",
+        "command_or_source": "git show fetched origin/main:releases/guanchao-native-preview.apk byte comparison after device verification",
+        "result_digest": "ac18018f6e56117cdcc80bc826afdeb35ff82bb8ae9ed6ca92a97a8b89ca1d1a",
+        "artifact_path": "github-readback.json"
+      }
+    }
+  ],
+  "unresolved_boundaries": [
+    {
+      "boundary_id": "no-cloud-push",
+      "statement": "当前只有 Android JobScheduler 定期检查与本机通知；未配置 FCM/OEM 凭据、服务端订阅和设备送达。",
+      "scope_refs": [
+        "production-services"
+      ],
+      "criterion_refs": [
+        "PUSH"
+      ],
+      "blocking": true
+    },
+    {
+      "boundary_id": "no-etf-pipeline",
+      "statement": "ETF 仍为有披露日的快照，自动供应商管道未完成。",
+      "scope_refs": [
+        "production-services"
+      ],
+      "criterion_refs": [
+        "ETF"
+      ],
+      "blocking": true
+    },
+    {
+      "boundary_id": "no-physical-device",
+      "statement": "模拟器不证明用户手机上的高刷新率、视觉满意度和后台可靠性。",
+      "scope_refs": [
+        "production-services"
+      ],
+      "criterion_refs": [
+        "PHONE"
+      ],
+      "blocking": true
+    }
+  ]
+}

@@ -1,0 +1,2 @@
+INSTRUMENTATION_RESULT: stream={"status":"passed","checks":31,"fixtureScreenshotsLabeled":true,"physicalDevice":false}
+INSTRUMENTATION_CODE: -1

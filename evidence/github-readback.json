@@ -1,0 +1,9 @@
+{
+  "verifiedAt": "2026-09-23T01:19:31Z",
+  "repository": "makalongshiwo-sys/makalong",
+  "commit": "1fefb0897699f73184494dffdcd0c342d91facee",
+  "branch": "main",
+  "apkSha256": "cf608b02661e3ad175d9fad737a0b39d74ed0cd6f6026bff9e4cee1932a4ddb4",
+  "source": "git show fetched origin/main:releases/guanchao-native-preview.apk byte comparison after device verification",
+  "matchesLocal": true
+}

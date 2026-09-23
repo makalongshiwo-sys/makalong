@@ -1,0 +1,15 @@
+{
+  "ok": true,
+  "schema_ok": true,
+  "completion_ready": false,
+  "issues": [],
+  "completion_blockers": [
+    "criterion:ETF.missing_passing_test:integration_tests",
+    "criterion:ETF.missing_passing_test:live_tests",
+    "criterion:PHONE.missing_passing_test:live_tests",
+    "criterion:PUSH.missing_passing_test:live_tests",
+    "unresolved_boundaries[0].blocking",
+    "unresolved_boundaries[1].blocking",
+    "unresolved_boundaries[2].blocking"
+  ]
+}

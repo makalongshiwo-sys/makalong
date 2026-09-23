@@ -1,0 +1,18 @@
+Verifies
+Verified using v1 scheme (JAR signing): false
+Verified using v2 scheme (APK Signature Scheme v2): true
+Verified using v3 scheme (APK Signature Scheme v3): true
+Verified using v3.1 scheme (APK Signature Scheme v3.1): false
+Verified using v4 scheme (APK Signature Scheme v4): false
+Verified for SourceStamp: false
+Number of signers: 1
+Signer #1 certificate DN: CN=Guanchao Test
+Signer #1 certificate SHA-256 digest: cdddf9674b55fd8564162218d14fd01dd9d8faf134f09e91e3df3a9f318f2cbe
+Signer #1 certificate SHA-1 digest: 4b9ef433fa6139f5d2fc280e1b9abe7291b5aa47
+Signer #1 certificate MD5 digest: ccae3e304ebb58fdc4beecc9c08b8a08
+Signer #1 key algorithm: RSA
+Signer #1 key size (bits): 2048
+Signer #1 public key SHA-256 digest: d1b376ed1fcf38d190841ce0f826be8c4ef61adcd3a6c2b646d6bf2c910cbae5
+Signer #1 public key SHA-1 digest: 53861f40c5a8898a55fd336f53f54858774854e2
+Signer #1 public key MD5 digest: 90fa62ecfb7443ba51722211ec181e74
+{"sha256": "cf608b02661e3ad175d9fad737a0b39d74ed0cd6f6026bff9e4cee1932a4ddb4", "bytes": 78569, "versionCode": 6, "minSdk": 26, "targetSdk": 36, "webRuntime": false, "physicalDeviceTested": false, "sourceSha256": {"app/src/main/AndroidManifest.xml": "782951a57d598ba4f658a7db03d7493e4136f62286990ed1af775e33f64c596b", "app/src/main/assets/etf-snapshot.json": "b9cd6da5322ddc9a0646ddc157dd53feb9816c03a69468084dbe6c6564be64bd", "app/src/main/assets/lessons.json": "b630891ecb134cc393a371a27064adca0340efc7d20bf0b5f84111048ef324e0", "app/src/main/assets/reports.json": "17bc0c686ad88931366ea38ab0cfe511c336d65a5c7b68e308cb306fec4f854c", "app/src/main/java/com/tide/journal/MainActivity.java": "0024f02abdd3a6583d0cfcb3750dfcc892a8fd4b580e28907d5b87af52372ce1", "app/src/main/java/com/tide/journal/data/Repository.java": "40d493ee375fb00c681c12cbc48c38e3cb99b4d649d87c1a2e2eeddd0adcd907", "app/src/main/java/com/tide/journal/data/Store.java": "08efb5a91715c6c2602bde42c937103b9b714fed9d72d8df3224292c9a6b4704", "app/src/main/java/com/tide/journal/domain/Lessons.java": "c106b976c22cbeaa95ea7a181665b03fe08af991d25b7ed8edbcd27364fc7cec", "app/src/main/java/com/tide/journal/domain/Market.java": "fc4ecaca665080283d6daf675e6b1946bbec50e6f6c605a6904f7622cfc57f78", "app/src/main/java/com/tide/journal/sync/AlertJob.java": "8cccf68f26045eb333379aee12ee29b24a574d7b6d5ea04200f7fbad886cacbc", "app/src/main/java/com/tide/journal/ui/CandleChart.java": "32b758b6dbc74290eaea876ca2e28dad46dd0e54a69ca2ca7cc7ddb6107be92f", "app/src/main/java/com/tide/journal/ui/SpatialLesson.java": "a197cfffa751576e91979baf85c1e9cebc295a28186192c320ce14f3a1fbc0ad", "app/src/main/java/com/tide/journal/ui/Ui.java": "85f57fa6e99d8c7613b78be97f56868cc09ba0f05c030fa32a9c5b25357dadd8", "app/src/main/res/drawable/icon.xml": "4b748960bf4581f8e1946a3cdce8b1eccb4c75a40c17d9efd536e53ecb8f02aa", "app/src/main/res/drawable/notification.xml": "2bb3d19d85fe54864ecb21b5f7ffba9cac691c34ab5b7ff74ae1e6e2d5eb71fa", "app/src/main/res/values/styles.xml": "622a8aed34eebb534f0de58fdc99fb2be26cfa8330cca8747fec008b310849b2"}}

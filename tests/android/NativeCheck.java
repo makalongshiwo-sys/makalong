@@ -17,6 +17,10 @@ public final class NativeCheck extends Instrumentation {
  private boolean containsClass(android.view.View v,String name){if(v.getClass().getName().equals(name))return true;if(v instanceof android.view.ViewGroup){android.view.ViewGroup g=(android.view.ViewGroup)v;for(int i=0;i<g.getChildCount();i++)if(containsClass(g.getChildAt(i),name))return true;}return false;}
  private void checkNav()throws Exception{
   LinearLayout nav=(LinearLayout)get("nav");check(nav.getChildCount()==5,"five navigation targets");
+  android.view.View chart=(android.view.View)get("chart"),scroll=(android.view.View)get("scroll");
+  int[] chartAt=new int[2],scrollAt=new int[2];chart.getLocationOnScreen(chartAt);scroll.getLocationOnScreen(scrollAt);
+  check(chartAt[1]+chart.getHeight()<=scrollAt[1]+scroll.getHeight()+2,"full chart fits initial phone viewport");
+  TextView price=(TextView)get("quote");check(price.getPaint().measureText(price.getText().toString())<=price.getWidth()+1,"single-line price fits");
   for(int i=0;i<5;i++){
    android.view.ViewGroup item=(android.view.ViewGroup)nav.getChildAt(i);TextView label=(TextView)item.getChildAt(2);
    check(item.getWidth()>0&&item.getHeight()>=Ui.dp(activity,48),"navigation touch size "+i);
@@ -36,7 +40,7 @@ public final class NativeCheck extends Instrumentation {
  public void onStart(){Bundle result=new Bundle();try{out=new File(getTargetContext().getExternalFilesDir(null),"verification");out.mkdirs();activity=(MainActivity)startActivitySync(new Intent(getTargetContext(),MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));waitForIdleSync();
   ui(()->{set("tab",0);invoke("render");set("generation",((Integer)get("generation"))+1);set("active",false);((Handler)get("main")).removeCallbacksAndMessages(null);
    List<Market.Bar>bars=new ArrayList<>();long size=Market.duration("4h"),base=Market.boundary("4h",System.currentTimeMillis())-90*size;for(int i=0;i<90;i++){double close=100+Math.sin(i*.4)*3+i*.05;bars.add(new Market.Bar(base+i*size,base+(i+1)*size-1,close-.4,close+1,close-1,close,100+i,true));}
-   CandleChart c=(CandleChart)get("chart");c.data(bars,Market.indicators(bars));((TextView)get("quote")).setText("示例 · 100.42");((TextView)get("quoteMeta")).setText("TEST FIXTURE · 用于图表验证，不是真实行情");check(((TextView)get("reading")).getText().toString().contains("RSI14"),"native chart callback");c.zoom(.75f);
+   CandleChart c=(CandleChart)get("chart");c.data(bars,Market.indicators(bars));((TextView)get("quote")).setText("示例 · 100.42");((TextView)get("quoteMeta")).setText("示例数据 · 非真实行情");check(((TextView)get("reading")).getText().toString().contains("RSI14"),"native chart callback");c.zoom(.75f);
   });shot("instrumented-chart-fixture");ui(()->checkNav());
 
   for(String id:Lessons.IDS){final String current=id;ui(()->{

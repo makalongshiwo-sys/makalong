@@ -10,7 +10,7 @@ import java.util.*;
 public final class CandleChart extends View {
  public interface Selection { void select(Market.Bar bar, Market.Point point); }
  private List<Market.Bar> bars=Collections.emptyList(); private List<Market.Point> points=Collections.emptyList();
- private final Paint p=new Paint(3); private final Selection selection;
+ private final Paint p=new Paint(3); private final Selection selection;private Runnable pick;
  private int count=55,offset,selected=-1; private boolean bb=true,userSelected,horizontal;
  private float startX,startY,lastX; private final ScaleGestureDetector scale;
  public CandleChart(Context c,Selection s){super(c);selection=s;setMinimumHeight(Ui.dp(c,320));setContentDescription("K线、成交量、MACD、RSI；双指缩放，左右拖动，点击查看数值");
@@ -18,6 +18,7 @@ public final class CandleChart extends View {
  }
  public void data(List<Market.Bar>b,List<Market.Point>v){long id=selected>=0&&selected<bars.size()?bars.get(selected).openAt:-1;bars=b;points=v;selected=-1;if(userSelected)for(int i=0;i<b.size();i++)if(b.get(i).openAt==id)selected=i;
   if(selected<0){userSelected=false;for(int i=b.size()-1;i>=0;i--)if(b.get(i).closed){selected=i;break;}}offset=Math.min(offset,Math.max(0,b.size()-count));reading();invalidate();}
+ public void onPick(Runnable callback){pick=callback;}
  public void bands(boolean v){bb=v;invalidate();} public void latest(){offset=0;userSelected=false;selected=-1;for(int i=bars.size()-1;i>=0;i--)if(bars.get(i).closed){selected=i;break;}reading();invalidate();}
  public void zoom(float factor){count=Math.max(18,Math.min(160,Math.round(count*factor)));offset=Math.min(offset,Math.max(0,bars.size()-count));invalidate();}
  private void reading(){if(selected>=0&&selected<points.size())selection.select(bars.get(selected),points.get(selected));}
@@ -52,7 +53,7 @@ public final class CandleChart extends View {
   case MotionEvent.ACTION_DOWN:startX=lastX=x;startY=yy;horizontal=false;return true;
   case MotionEvent.ACTION_POINTER_DOWN:getParent().requestDisallowInterceptTouchEvent(true);return true;
   case MotionEvent.ACTION_MOVE:if(scale.isInProgress())return true;if(!horizontal&&Math.abs(x-startX)>Ui.dp(getContext(),8)&&Math.abs(x-startX)>Math.abs(yy-startY)){horizontal=true;getParent().requestDisallowInterceptTouchEvent(true);}if(horizontal){float step=(right()-left())/Math.min(count,Math.max(1,bars.size()));int delta=(int)((x-lastX)/step);if(delta!=0){offset=Math.max(0,Math.min(Math.max(0,bars.size()-count),offset+delta));lastX=x;invalidate();}}return true;
-  case MotionEvent.ACTION_UP:if(!horizontal&&Math.hypot(x-startX,yy-startY)<Ui.dp(getContext(),10)&&!bars.isEmpty()){int n=end()-begin();selected=Math.max(begin(),Math.min(end()-1,begin()+(int)((x-left())/(right()-left())*n)));userSelected=true;reading();invalidate();performClick();}getParent().requestDisallowInterceptTouchEvent(false);return true;
+  case MotionEvent.ACTION_UP:if(!horizontal&&Math.hypot(x-startX,yy-startY)<Ui.dp(getContext(),10)&&!bars.isEmpty()){int n=end()-begin();selected=Math.max(begin(),Math.min(end()-1,begin()+(int)((x-left())/(right()-left())*n)));userSelected=true;reading();if(pick!=null)pick.run();invalidate();performClick();}getParent().requestDisallowInterceptTouchEvent(false);return true;
   case MotionEvent.ACTION_CANCEL:getParent().requestDisallowInterceptTouchEvent(false);return true;
  }return true;}
  @Override public boolean performClick(){super.performClick();return true;}

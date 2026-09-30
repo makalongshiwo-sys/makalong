@@ -4,7 +4,7 @@ import json, subprocess, urllib.request, datetime, re
 out=Path('evidence/ci');out.mkdir(parents=True,exist_ok=True)
 subprocess.run(['javac','-encoding','UTF-8','-d','out/domain','app/src/main/java/com/tide/journal/domain/EtfHistory.java','tests/EtfSourceProbe.java'],check=True)
 results=[]
-for asset,path in [('BTC','bitcoin-etf-flow-all-data/'),('ETH','eth/'),('SOL','sol/')]:
+for asset,path in [('BTC','bitcoin-etf-flow-all-data/'),('ETH','ethereum-etf-flow-all-data/'),('SOL','sol/')]:
  url='https://farside.co.uk/'+path
  result={'asset':asset,'url':url,'checkedAt':datetime.datetime.now(datetime.timezone.utc).isoformat()}
  try:
@@ -18,6 +18,7 @@ for asset,path in [('BTC','bitcoin-etf-flow-all-data/'),('ETH','eth/'),('SOL','s
   if probe.returncode:
    text=html.decode('utf-8',errors='replace')
    result['tables']=len(re.findall(r'<table\b',text,re.I))
+   result['headerCells']=[[re.sub(r'<[^>]*>',' ',cell).strip() for cell in re.findall(r'(?is)<t[dh]\b[^>]*>(.*?)</t[dh]>',row)] for row in re.findall(r'(?is)<tr\b[^>]*>(.*?)</tr>',text)[:5]]
    result['tableStart']=[re.sub(r'<[^>]*>',' ',table)[:1200] for table in re.findall(r'(?is)<table\b.*?</table>',text)[:2]]
    result['relatedLinks']=sorted(set(re.findall(r'href=["\x27]([^"\x27]*(?:all-data|ethereum|solana|/eth/|/sol/)[^"\x27]*)',text,re.I)))[:30]
    result['pageTitle']=re.findall(r'(?is)<title>(.*?)</title>',text)[:1]

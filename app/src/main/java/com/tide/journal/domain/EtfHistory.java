@@ -40,7 +40,7 @@ public final class EtfHistory {
   if(html==null||html.length()>2500000)throw new IOException("ETF 响应过大或为空");
   Matcher tables=TABLE.matcher(html);
   while(tables.find()){
-   List<String> header=null;int dateIndex=-1,totalIndex=-1;TreeMap<String,Row> history=new TreeMap<>();
+   List<String> header=null;int dateIndex=-1,totalIndex=-1,pendingColumns=-1;TreeMap<String,Row> history=new TreeMap<>();
    Matcher rows=TR.matcher(tables.group(1));
    while(rows.find()){
     List<String> cells=new ArrayList<>();Matcher columns=CELL.matcher(rows.group(1));
@@ -48,6 +48,18 @@ public final class EtfHistory {
     int di=-1,ti=-1;
     for(int i=0;i<cells.size();i++){if(cells.get(i).equalsIgnoreCase("date"))di=i;if(cells.get(i).equalsIgnoreCase("total"))ti=i;}
     if(di>=0&&ti>di+1){header=cells;dateIndex=di;totalIndex=ti;continue;}
+    // Some issuer tables use two header rows with Date/Total cells spanning both.
+    if(di<0&&ti==cells.size()-1&&ti>1){
+     boolean blank=true;for(int i=0;i<ti;i++)if(!cells.get(i).isEmpty())blank=false;
+     if(blank){pendingColumns=cells.size();continue;}
+    }
+    if(pendingColumns>2){
+     List<String> tickers=new ArrayList<>(cells);
+     if(tickers.size()==pendingColumns&&tickers.get(0).isEmpty()&&tickers.get(tickers.size()-1).isEmpty())tickers=new ArrayList<>(tickers.subList(1,tickers.size()-1));
+     boolean valid=tickers.size()==pendingColumns-2;
+     for(String ticker:tickers)if(!ticker.matches("[A-Z][A-Z0-9]{1,7}"))valid=false;
+     if(valid){header=new ArrayList<>();header.add("Date");header.addAll(tickers);header.add("Total");dateIndex=0;totalIndex=header.size()-1;pendingColumns=-1;continue;}
+    }
     if(header==null||cells.size()<=dateIndex)continue;
     String day=date(cells.get(dateIndex));if(day==null)continue;
     if(cells.size()!=header.size())throw new IOException("ETF 表格列数改变，暂停解析");

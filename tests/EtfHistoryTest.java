@@ -20,6 +20,9 @@ public final class EtfHistoryTest {
   rejects("<table>"+header+rows+rows+"</table>","duplicate dates rejected");
   rejects("<table>"+header+rows.replace("12 Jan 2024","12 Jan 2099")+"</table>","future date rejected");
   rejects("<html>Service unavailable</html>","error page rejected");
+  String split="<tr><td>&nbsp;</td><td></td><td></td><td>Total</td></tr>";
+  check(EtfHistory.parse("<table>"+split+"<tr><td></td><td>IBIT</td><td>FBTC</td><td></td></tr>"+rows+"</table>").size()==2,"two-row header with empty edge cells");
+  check(EtfHistory.parse("<table>"+split+"<tr><td>IBIT</td><td>FBTC</td></tr>"+rows+"</table>").size()==2,"two-row header with rowspans");
   // Full history must survive well beyond the old ten-row display limit.
   StringBuilder many=new StringBuilder("<table>"+header);
   for(int i=0;i<400;i++)many.append("<tr><td>").append(java.time.LocalDate.of(2024,1,1).plusDays(i)).append("</td><td>1.0</td><td>0.0</td><td>1.0</td></tr>");

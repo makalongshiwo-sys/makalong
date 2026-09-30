@@ -47,6 +47,10 @@ public final class EtfHistory {
     while(columns.find())cells.add(plain(columns.group(1)));
     int di=-1,ti=-1;
     for(int i=0;i<cells.size();i++){if(cells.get(i).equalsIgnoreCase("date"))di=i;if(cells.get(i).equalsIgnoreCase("total"))ti=i;}
+    if(di<0&&ti==cells.size()-1&&ti>1&&cells.get(0).isEmpty()){
+     boolean tickers=true;for(int i=1;i<ti;i++)if(!cells.get(i).matches("[A-Z][A-Z0-9]{1,7}"))tickers=false;
+     if(tickers)di=0;
+    }
     if(di>=0&&ti>di+1){header=cells;dateIndex=di;totalIndex=ti;continue;}
     // Some issuer tables use two header rows with Date/Total cells spanning both.
     if(di<0&&ti==cells.size()-1&&ti>1){

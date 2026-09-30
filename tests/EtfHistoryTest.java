@@ -20,6 +20,7 @@ public final class EtfHistoryTest {
   rejects("<table>"+header+rows+rows+"</table>","duplicate dates rejected");
   rejects("<table>"+header+rows.replace("12 Jan 2024","12 Jan 2099")+"</table>","future date rejected");
   rejects("<html>Service unavailable</html>","error page rejected");
+  check(EtfHistory.parse("<table>"+header.replace("<th>Date</th>","<th></th>")+rows+"</table>").size()==2,"blank date header with explicit ticker and total columns");
   String split="<tr><td>&nbsp;</td><td></td><td></td><td>Total</td></tr>";
   check(EtfHistory.parse("<table>"+split+"<tr><td></td><td>IBIT</td><td>FBTC</td><td></td></tr>"+rows+"</table>").size()==2,"two-row header with empty edge cells");
   check(EtfHistory.parse("<table>"+split+"<tr><td>IBIT</td><td>FBTC</td></tr>"+rows+"</table>").size()==2,"two-row header with rowspans");

@@ -7,7 +7,7 @@ public final class FlowChart extends View {
  public void data(List<String>d,List<Double>v){dates=new ArrayList<>(d);totals=new ArrayList<>(v);selected=-1;invalidate();}
  private float dp(float n){return Ui.dp(getContext(),n);}
  @Override protected void onDraw(Canvas c){super.onDraw(c);float left=dp(8),right=getWidth()-dp(8),top=dp(30),bottom=getHeight()-dp(28),zero=(top+bottom)/2;
-  paint.setTextSize(dp(11));paint.setColor(Ui.MUTED);paint.setTextAlign(Paint.Align.LEFT);
+  paint.setTextSize(Math.min(Ui.sp(getContext(),11),dp(13)));paint.setColor(Ui.MUTED);paint.setTextAlign(Paint.Align.LEFT);
   if(dates.isEmpty()){c.drawText("暂无所选日期的披露",left,zero,paint);return;}
   double scale=1;for(Double n:totals)if(n!=null&&Double.isFinite(n))scale=Math.max(scale,Math.abs(n));float span=(bottom-top)/2,step=(right-left)/dates.size();
   paint.setColor(Ui.LINE);paint.setStrokeWidth(dp(1));c.drawLine(left,zero,right,zero,paint);

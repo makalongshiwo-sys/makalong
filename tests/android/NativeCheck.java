@@ -5,8 +5,8 @@ import java.lang.reflect.*;import java.util.*;import java.io.*;
 
 /** Separate signed instrumentation; fixtures never enter the production APK. */
 public final class NativeCheck extends Instrumentation {
- private MainActivity activity;private File out;private int checks;
- public void onCreate(Bundle args){super.onCreate(args);start();}
+ private MainActivity activity;private File out;private int checks;private String scenario;
+ public void onCreate(Bundle args){super.onCreate(args);scenario=args==null?"standard":args.getString("scenario","standard");start();}
  private Object get(String name)throws Exception{Field f=MainActivity.class.getDeclaredField(name);f.setAccessible(true);return f.get(activity);}
  private void set(String name,Object value)throws Exception{Field f=MainActivity.class.getDeclaredField(name);f.setAccessible(true);f.set(activity,value);}
  private void invoke(String name)throws Exception{Method m=MainActivity.class.getDeclaredMethod(name);m.setAccessible(true);m.invoke(activity);}
@@ -15,12 +15,26 @@ public final class NativeCheck extends Instrumentation {
  private void ui(Step step)throws Exception{Throwable[]error={null};runOnMainSync(()->{try{step.run();}catch(Throwable e){error[0]=e;}});if(error[0]!=null)throw new Exception(error[0]);waitForIdleSync();}
  private boolean containsText(android.view.View v,String text){if(v instanceof TextView&&((TextView)v).getText().toString().contains(text))return true;if(v instanceof android.view.ViewGroup){android.view.ViewGroup g=(android.view.ViewGroup)v;for(int i=0;i<g.getChildCount();i++)if(containsText(g.getChildAt(i),text))return true;}return false;}
  private boolean containsClass(android.view.View v,String name){if(v.getClass().getName().equals(name))return true;if(v instanceof android.view.ViewGroup){android.view.ViewGroup g=(android.view.ViewGroup)v;for(int i=0;i<g.getChildCount();i++)if(containsClass(g.getChildAt(i),name))return true;}return false;}
- private void shot(String name)throws Exception{SystemClock.sleep(700);Bitmap b=getUiAutomation().takeScreenshot();check(b!=null,"screenshot available");try(FileOutputStream f=new FileOutputStream(new File(out,name+".png"))){b.compress(Bitmap.CompressFormat.PNG,100,f);}b.recycle();}
+ private void checkNav()throws Exception{
+  LinearLayout nav=(LinearLayout)get("nav");check(nav.getChildCount()==5,"five navigation targets");
+  for(int i=0;i<5;i++){
+   android.view.ViewGroup item=(android.view.ViewGroup)nav.getChildAt(i);TextView label=(TextView)item.getChildAt(2);
+   check(item.getWidth()>0&&item.getHeight()>=Ui.dp(activity,48),"navigation touch size "+i);
+   check(label.getPaint().measureText(label.getText().toString())<=label.getWidth()+1,"navigation label fits "+i);
+  }
+  double contrast=(android.graphics.Color.luminance(Ui.INK)+.05)/(android.graphics.Color.luminance(Ui.SURFACE)+.05);
+  check(Math.max(contrast,1/contrast)>=4.5,"body text contrast");
+  contrast=(android.graphics.Color.luminance(Ui.BLUE)+.05)/(android.graphics.Color.luminance(Ui.TINT)+.05);
+  check(Math.max(contrast,1/contrast)>=4.5,"selected button contrast");
+  boolean night=(activity.getResources().getConfiguration().uiMode&android.content.res.Configuration.UI_MODE_NIGHT_MASK)==android.content.res.Configuration.UI_MODE_NIGHT_YES;
+  check(Ui.isDark()==night,"system appearance followed");
+ }
+ private void shot(String name)throws Exception{SystemClock.sleep(700);Bitmap b=getUiAutomation().takeScreenshot();check(b!=null,"screenshot available");try(FileOutputStream f=new FileOutputStream(new File(out,name+"-"+scenario+".png"))){b.compress(Bitmap.CompressFormat.PNG,100,f);}b.recycle();}
  public void onStart(){Bundle result=new Bundle();try{out=new File(getTargetContext().getExternalFilesDir(null),"verification");out.mkdirs();activity=(MainActivity)startActivitySync(new Intent(getTargetContext(),MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));waitForIdleSync();
   ui(()->{set("tab",0);invoke("render");set("generation",((Integer)get("generation"))+1);set("active",false);((Handler)get("main")).removeCallbacksAndMessages(null);
    List<Market.Bar>bars=new ArrayList<>();long size=Market.duration("4h"),base=Market.boundary("4h",System.currentTimeMillis())-90*size;for(int i=0;i<90;i++){double close=100+Math.sin(i*.4)*3+i*.05;bars.add(new Market.Bar(base+i*size,base+(i+1)*size-1,close-.4,close+1,close-1,close,100+i,true));}
-   CandleChart c=(CandleChart)get("chart");c.data(bars,Market.indicators(bars));((TextView)get("quote")).setText("测试夹具");((TextView)get("quoteMeta")).setText("TEST FIXTURE · 用于图表验证，不是真实行情");check(((TextView)get("reading")).getText().toString().contains("RSI14"),"native chart callback");c.zoom(.75f);
-  });shot("instrumented-chart-fixture");
+   CandleChart c=(CandleChart)get("chart");c.data(bars,Market.indicators(bars));((TextView)get("quote")).setText("示例 · 100.42");((TextView)get("quoteMeta")).setText("TEST FIXTURE · 用于图表验证，不是真实行情");check(((TextView)get("reading")).getText().toString().contains("RSI14"),"native chart callback");c.zoom(.75f);
+  });shot("instrumented-chart-fixture");ui(()->checkNav());
 
   for(String id:Lessons.IDS){final String current=id;ui(()->{
    set("tab",2);set("lessonId",current);invoke("render");
@@ -41,7 +55,11 @@ public final class NativeCheck extends Instrumentation {
    check(containsText((android.view.View)get("etfRows"),start.toString()),"oldest history reachable");
    set("etfRange","1个月");invoke("drawEtf");check(!containsText((android.view.View)get("etfRows"),start.toString()),"range filters oldest rows");
   });shot("instrumented-etf-history-fixture");
-  ui(()->{Store s=Repository.get(activity).store;s.add("device-test-dedupe","test","test",1);s.add("device-test-dedupe","test","test",1);long count=s.notices().stream().filter(x->x[0].equals("device-test-dedupe")).count();check(count==1,"SQLite duplicate suppression");s.mark("device-test-dedupe");check(s.sent("device-test-dedupe"),"SQLite delivery persistence");s.getWritableDatabase().delete("inbox","id=?",new String[]{"device-test-dedupe"});});
+  ui(()->{set("tab",4);set("lessonId","");invoke("render");invoke("originHelp");
+   check(containsText((android.view.View)get("body"),"OriginOS 后台提醒"),"OriginOS help available");
+   check(containsText((android.view.View)get("body"),"即时提醒仍需接通厂商推送"),"push status not overstated");
+  });
+    ui(()->{Store s=Repository.get(activity).store;s.add("device-test-dedupe","test","test",1);s.add("device-test-dedupe","test","test",1);long count=s.notices().stream().filter(x->x[0].equals("device-test-dedupe")).count();check(count==1,"SQLite duplicate suppression");s.mark("device-test-dedupe");check(s.sent("device-test-dedupe"),"SQLite delivery persistence");s.getWritableDatabase().delete("inbox","id=?",new String[]{"device-test-dedupe"});});
   String receipt="{\"status\":\"passed\",\"checks\":"+checks+",\"fixtureScreenshotsLabeled\":true,\"physicalDevice\":false}";try(FileOutputStream f=new FileOutputStream(new File(out,"instrumentation.json"))){f.write(receipt.getBytes("UTF-8"));}result.putString("stream",receipt);finish(Activity.RESULT_OK,result);
  }catch(Throwable e){result.putString("stream",android.util.Log.getStackTraceString(e));finish(Activity.RESULT_CANCELED,result);}}
 }

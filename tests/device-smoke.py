@@ -16,6 +16,7 @@ def click(label,partial=False,scrolls=0):
   if attempt<scrolls:adb('shell','input','swipe',500,1300,500,500,350);time.sleep(.4)
  raise AssertionError('Control not found: '+label)
 try:
+ adb('shell','wm','size','1080x2400');adb('shell','wm','density','440');adb('shell','settings','put','system','font_scale','1.0');adb('shell','cmd','uimode','night','no')
  adb('install','-r','releases/guanchao-native-preview.apk');adb('logcat','-c');adb('shell','am','start','-W','-n','com.tide.journal/.MainActivity');time.sleep(4)
  assert b'com.tide.journal' in adb('shell','pidof','com.tide.journal') or adb('shell','pidof','com.tide.journal').strip()
  capture('01-market');click('ETH');click('日线',scrolls=1);capture('02-eth-daily')
@@ -28,10 +29,18 @@ try:
  notice=adb('shell','dumpsys','notification','--noredact').decode(errors='replace');(out/'notifications.txt').write_text(notice);assert '观潮测试通知' in notice,'No submitted Android notification'
  adb('shell','input','keyevent','3');time.sleep(.5);adb('shell','am','start','-W','-n','com.tide.journal/.MainActivity');time.sleep(1);capture('12-resumed')
  adb('install','-r','releases/native-instrumentation.apk')
- instrument=adb('shell','am','instrument','-w','-r','com.tide.journal.test/com.tide.journal.test.NativeCheck').decode(errors='replace');(out/'instrumentation-output.txt').write_text(instrument);assert 'INSTRUMENTATION_CODE: -1' in instrument and '"status":"passed"' in instrument,instrument
+
+ for scenario,night,font in [('light','no','1.0'),('dark','yes','1.0'),('large-text','no','1.3')]:
+  adb('shell','cmd','uimode','night',night);adb('shell','settings','put','system','font_scale',font);adb('shell','am','force-stop','com.tide.journal');time.sleep(1)
+  instrument=adb('shell','am','instrument','-w','-r','-e','scenario',scenario,'com.tide.journal.test/com.tide.journal.test.NativeCheck').decode(errors='replace')
+  (out/('instrumentation-'+scenario+'.txt')).write_text(instrument)
+  assert 'INSTRUMENTATION_CODE: -1' in instrument and '"status":"passed"' in instrument,instrument
+  print('Native layout checks passed: '+scenario)
+
  adb('pull','/sdcard/Android/data/com.tide.journal/files/verification',str(out/'instrumentation'))
  logs=adb('logcat','-d','-v','brief').decode(errors='replace');(out/'logcat.txt').write_text(logs);assert 'FATAL EXCEPTION' not in logs,'Runtime crash'
- result={'status':'passed','apkSha256':hashlib.sha256(Path('releases/guanchao-native-preview.apk').read_bytes()).hexdigest(),'device':adb('shell','getprop','ro.build.version.release').decode().strip(),'steps':steps,'physicalDevice':False,'cloudPushVerified':False}
+ result={'status':'passed','apkSha256':hashlib.sha256(Path('releases/guanchao-native-preview.apk').read_bytes()).hexdigest(),'device':adb('shell','getprop','ro.build.version.release').decode().strip(),'steps':steps,'physicalDevice':False,'cloudPushVerified':False,'viewport':[1080,2400],'originOsDeviceTested':False,'appearanceScenarios':['light','dark','large-text']}
  (out/'device-result.json').write_text(json.dumps(result,ensure_ascii=False,indent=2));print(json.dumps(result,ensure_ascii=False))
 finally:
+ adb('shell','settings','put','system','font_scale','1.0',check=False);adb('shell','cmd','uimode','night','no',check=False)
  (out/'logcat-final.txt').write_bytes(adb('logcat','-d','-v','brief',check=False));capture('final-screen')

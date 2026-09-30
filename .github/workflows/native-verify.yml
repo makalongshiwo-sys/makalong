@@ -32,6 +32,7 @@ jobs:
         run: |
           sdkmanager "platforms;android-36"
           keytool -genkeypair -keystore "$RUNNER_TEMP/verification.jks" -alias androiddebugkey -storepass android -keypass android -dname "CN=Guanchao CI Verification" -keyalg RSA -validity 2
+          python -m pip install --quiet Pillow
           python build.py "$ANDROID_HOME" --key "$RUNNER_TEMP/verification.jks"
           python tests/build-instrumentation.py "$ANDROID_HOME" "$RUNNER_TEMP/verification.jks"
       - name: Verify current verification APK identity
@@ -53,6 +54,9 @@ jobs:
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -camera-front none
           script: python tests/device-smoke.py
+      - name: Export real native layout previews
+        if: success()
+        run: python scripts/export-ui-previews.py
       - name: Evidence and CI verification package
         if: always()
         uses: actions/upload-artifact@v4

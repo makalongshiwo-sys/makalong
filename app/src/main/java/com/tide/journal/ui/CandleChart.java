@@ -13,7 +13,7 @@ public final class CandleChart extends View {
  private final Paint p=new Paint(3); private final Selection selection;
  private int count=55,offset,selected=-1; private boolean bb=true,userSelected,horizontal;
  private float startX,startY,lastX; private final ScaleGestureDetector scale;
- public CandleChart(Context c,Selection s){super(c);selection=s;setMinimumHeight(Ui.dp(c,420));setContentDescription("K线、成交量、MACD、RSI；双指缩放，左右拖动，点击查看数值");
+ public CandleChart(Context c,Selection s){super(c);selection=s;setMinimumHeight(Ui.dp(c,320));setContentDescription("K线、成交量、MACD、RSI；双指缩放，左右拖动，点击查看数值");
   scale=new ScaleGestureDetector(c,new ScaleGestureDetector.SimpleOnScaleGestureListener(){@Override public boolean onScale(ScaleGestureDetector d){zoom(1/d.getScaleFactor());return true;}});
  }
  public void data(List<Market.Bar>b,List<Market.Point>v){long id=selected>=0&&selected<bars.size()?bars.get(selected).openAt:-1;bars=b;points=v;selected=-1;if(userSelected)for(int i=0;i<b.size();i++)if(b.get(i).openAt==id)selected=i;
@@ -23,7 +23,7 @@ public final class CandleChart extends View {
  private void reading(){if(selected>=0&&selected<points.size())selection.select(bars.get(selected),points.get(selected));}
  private float left(){return Ui.dp(getContext(),4);}private float right(){return getWidth()-Ui.dp(getContext(),49);}private int end(){return Math.max(0,bars.size()-offset);}private int begin(){return Math.max(0,end()-count);}
  private void line(Canvas c,float x,float y,float x2,float y2,int color,float width){p.setColor(color);p.setStrokeWidth(width);c.drawLine(x,y,x2,y2,p);}
- private void label(Canvas c,String s,float x,float y,int color){p.setColor(color);p.setTextSize(Ui.dp(getContext(),10));c.drawText(s,x,y,p);}
+ private void label(Canvas c,String s,float x,float y,int color){p.setColor(color);p.setTextSize(Math.min(Ui.sp(getContext(),10),Ui.dp(getContext(),12)));c.drawText(s,x,y,p);}
  @Override protected void onDraw(Canvas c){super.onDraw(c);float w=right()-left(),h=getHeight(),top=Ui.dp(getContext(),24),bottom=h*.47f;
   if(bars.isEmpty()){label(c,"等待来源 K 线，未使用演示价格",left(),h/2,Ui.MUTED);return;}
   int begin=begin(),end=end(),n=end-begin;if(n<=0)return;float step=w/n;double low=Double.POSITIVE_INFINITY,high=0,vol=1,mac=.000001;

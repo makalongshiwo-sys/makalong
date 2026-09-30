@@ -28,6 +28,9 @@ public final class NativeCheck extends Instrumentation {
   check(Math.max(contrast,1/contrast)>=4.5,"selected button contrast");
   boolean night=(activity.getResources().getConfiguration().uiMode&android.content.res.Configuration.UI_MODE_NIGHT_MASK)==android.content.res.Configuration.UI_MODE_NIGHT_YES;
   check(Ui.isDark()==night,"system appearance followed");
+  check(night==scenario.equals("dark"),"requested appearance scenario active");
+  float expected=scenario.equals("large-text")?1.3f:1f;
+  check(Math.abs(activity.getResources().getConfiguration().fontScale-expected)<.02,"requested font scale active");
  }
  private void shot(String name)throws Exception{SystemClock.sleep(700);Bitmap b=getUiAutomation().takeScreenshot();check(b!=null,"screenshot available");try(FileOutputStream f=new FileOutputStream(new File(out,name+"-"+scenario+".png"))){b.compress(Bitmap.CompressFormat.PNG,100,f);}b.recycle();}
  public void onStart(){Bundle result=new Bundle();try{out=new File(getTargetContext().getExternalFilesDir(null),"verification");out.mkdirs();activity=(MainActivity)startActivitySync(new Intent(getTargetContext(),MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));waitForIdleSync();

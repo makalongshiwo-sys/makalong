@@ -2,7 +2,7 @@ plugins { id 'com.android.application' }
 android {
  namespace 'com.tide.journal'
  compileSdk 36
- defaultConfig { applicationId 'com.tide.journal'; minSdk 26; targetSdk 36; versionCode 7; versionName '0.7-native-preview' }
+ defaultConfig { applicationId 'com.tide.journal'; minSdk 26; targetSdk 36; versionCode 8; versionName '0.8-native-preview' }
  compileOptions { sourceCompatibility JavaVersion.VERSION_1_8; targetCompatibility JavaVersion.VERSION_1_8 }
  buildTypes { release { minifyEnabled false } }
 }

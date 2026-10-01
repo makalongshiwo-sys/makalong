@@ -43,7 +43,7 @@ public final class Ui {
   TextView t=text(c,s,14,INK);t.setGravity(Gravity.CENTER);t.setMinHeight(dp(c,48));
   t.setPadding(dp(c,14),dp(c,10),dp(c,14),dp(c,10));selectButton(t,selected);
   t.setOnClickListener(v->{v.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK);click.run();});
-  t.setFocusable(true);t.setContentDescription(s);return t;
+  t.setFocusable(true);t.setAccessibilityDelegate(new View.AccessibilityDelegate(){@Override public void onInitializeAccessibilityNodeInfo(View host,android.view.accessibility.AccessibilityNodeInfo info){super.onInitializeAccessibilityNodeInfo(host,info);info.setClassName(Button.class.getName());}});return t;
  }
  public static void selectButton(TextView t,boolean selected){
   t.setSelected(selected);t.setTextColor(selected?BLUE:INK);

@@ -22,11 +22,11 @@ public final class EtfHistory {
    .replaceAll("(?s)<[^>]*>"," ").replace("&nbsp;"," ").replace("&#160;"," ").replace("&amp;","&")
    .replace("&#8722;","-").replace('\u2212','-').replace('\u00a0',' ').trim().replaceAll("\\s+"," ");
  }
- private static String date(String cell){
-  for(String pattern:new String[]{"dd MMM yyyy","dd MMM yy","yyyy-MM-dd","dd/MM/yyyy"}){
-   try{return LocalDate.parse(cell,new DateTimeFormatterBuilder().parseCaseInsensitive().appendPattern(pattern).toFormatter(Locale.ENGLISH)).toString();}
+ private static String date(String cell)throws IOException{
+  for(String pattern:new String[]{"dd MMM uuuu","dd MMM uu","uuuu-MM-dd","dd/MM/uuuu"}){
+   try{return LocalDate.parse(cell,new DateTimeFormatterBuilder().parseCaseInsensitive().appendPattern(pattern).toFormatter(Locale.ENGLISH).withResolverStyle(ResolverStyle.STRICT)).toString();}
    catch(DateTimeParseException ignored){}
-  }return null;
+  }if(cell.matches("[0-9]{1,2} [A-Za-z]{3} [0-9]{2,4}|[0-9]{4}-[0-9]{2}-[0-9]{2}|[0-9]{2}/[0-9]{2}/[0-9]{4}"))throw new IOException("ETF 交易日无效："+cell);return null;
  }
  private static Double number(String text)throws IOException{
   String value=text.trim();if(value.isEmpty()||value.equals("-")||value.equals("—")||value.equalsIgnoreCase("N/A"))return null;

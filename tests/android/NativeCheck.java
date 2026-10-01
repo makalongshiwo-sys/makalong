@@ -36,12 +36,43 @@ public final class NativeCheck extends Instrumentation {
   float expected=scenario.equals("large-text")?1.3f:1f;
   check(Math.abs(activity.getResources().getConfiguration().fontScale-expected)<.02,"requested font scale active");
  }
+ private android.view.MotionEvent touch(long start,int action,float...xs){
+  android.view.MotionEvent.PointerProperties[] props=new android.view.MotionEvent.PointerProperties[xs.length];android.view.MotionEvent.PointerCoords[] coords=new android.view.MotionEvent.PointerCoords[xs.length];
+  for(int i=0;i<xs.length;i++){props[i]=new android.view.MotionEvent.PointerProperties();props[i].id=i;props[i].toolType=android.view.MotionEvent.TOOL_TYPE_FINGER;coords[i]=new android.view.MotionEvent.PointerCoords();coords[i].x=xs[i];coords[i].y=100;coords[i].pressure=1;coords[i].size=1;}
+  return android.view.MotionEvent.obtain(start,SystemClock.uptimeMillis(),action,xs.length,props,coords,0,0,1,1,0,0,android.view.InputDevice.SOURCE_TOUCHSCREEN,0);
+ }
+ private void chartGestures()throws Exception{
+  CandleChart chart=(CandleChart)get("chart");int[] picks={0};chart.onPick(()->picks[0]++);long start=SystemClock.uptimeMillis();
+  int[] actions={android.view.MotionEvent.ACTION_DOWN,android.view.MotionEvent.ACTION_POINTER_DOWN|(1<<8),android.view.MotionEvent.ACTION_POINTER_UP|(1<<8),android.view.MotionEvent.ACTION_UP};
+  for(int i=0;i<actions.length;i++){android.view.MotionEvent e=touch(start,actions[i],i==1||i==2?new float[]{100,200}:new float[]{100});chart.onTouchEvent(e);e.recycle();}
+  check(picks[0]==0,"multitouch release does not open candle details");
+  for(int action:new int[]{android.view.MotionEvent.ACTION_DOWN,android.view.MotionEvent.ACTION_UP}){android.view.MotionEvent e=touch(start,action,100);chart.onTouchEvent(e);e.recycle();}
+  check(picks[0]==1,"single tap still opens candle details");chart.onPick(null);
+ }
+ private void dataGuards()throws Exception{
+  Repository repo=Repository.get(activity);Repository.validate("etf-snapshot",new org.json.JSONObject(repo.asset("etf-snapshot.json")));
+  check(true,"bundled ETF rows pass strict validation");
+  org.json.JSONObject original=new org.json.JSONObject(repo.asset("etf-snapshot.json"));org.json.JSONArray rows=original.getJSONObject("assets").getJSONObject("BTC").getJSONArray("rows");
+  org.json.JSONObject valid=null;for(int i=0;i<rows.length();i++)if(rows.getJSONObject(i).getString("status").equals("complete")){valid=rows.getJSONObject(i);break;}
+  check(valid!=null,"complete validation fixture exists");
+  org.json.JSONArray corrupt=new org.json.JSONArray().put(org.json.JSONObject.NULL);
+  try{Repository.validateEtfRows(corrupt);throw new AssertionError("null ETF row accepted");}catch(org.json.JSONException expected){checks++;}
+  org.json.JSONObject wrong=new org.json.JSONObject(valid.toString()).put("total",1234567);
+  try{Repository.validateEtfRows(new org.json.JSONArray().put(wrong));throw new AssertionError("wrong total accepted");}catch(IOException expected){checks++;}
+  wrong=new org.json.JSONObject(valid.toString());wrong.getJSONArray("funds").getJSONObject(0).put("flow",org.json.JSONObject.NULL);
+  try{Repository.validateEtfRows(new org.json.JSONArray().put(wrong));throw new AssertionError("incomplete complete row accepted");}catch(IOException expected){checks++;}
+  String key="etf-history-BTC";Store.Cached old=repo.store.get(key);
+  try{repo.store.put(key,"{\"unit\":\"USD million\",\"rows\":[null]}",System.currentTimeMillis());check(repo.localEtf("BTC").data.getJSONArray("rows").length()>0,"corrupt ETF cache falls back to bundled snapshot");}
+  finally{if(old==null)repo.store.getWritableDatabase().delete("cache","key=?",new String[]{key});else repo.store.put(key,old.payload,old.fetched);}
+  long boundary=Market.boundary("1h",System.currentTimeMillis());org.json.JSONArray candle=new org.json.JSONArray().put(boundary-3600000).put(100).put(101).put(99).put(100).put(10).put(boundary-1);
+  check(!Repository.parseBars(new org.json.JSONArray().put(candle),"1h",boundary-100).get(0).closed,"request before close retains candidate status after delayed response");
+ }
  private void shot(String name)throws Exception{SystemClock.sleep(700);Bitmap b=getUiAutomation().takeScreenshot();check(b!=null,"screenshot available");try(FileOutputStream f=new FileOutputStream(new File(out,name+"-"+scenario+".png"))){b.compress(Bitmap.CompressFormat.PNG,100,f);}b.recycle();}
  public void onStart(){Bundle result=new Bundle();try{out=new File(getTargetContext().getExternalFilesDir(null),"verification");out.mkdirs();activity=(MainActivity)startActivitySync(new Intent(getTargetContext(),MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));waitForIdleSync();
   ui(()->{set("tab",0);invoke("render");set("generation",((Integer)get("generation"))+1);set("active",false);((Handler)get("main")).removeCallbacksAndMessages(null);
    List<Market.Bar>bars=new ArrayList<>();long size=Market.duration("4h"),base=Market.boundary("4h",System.currentTimeMillis())-90*size;for(int i=0;i<90;i++){double close=100+Math.sin(i*.4)*3+i*.05;bars.add(new Market.Bar(base+i*size,base+(i+1)*size-1,close-.4,close+1,close-1,close,100+i,true));}
    CandleChart c=(CandleChart)get("chart");c.data(bars,Market.indicators(bars));((TextView)get("quote")).setText("示例 · 100.42");((TextView)get("quoteMeta")).setText("示例数据 · 非真实行情");check(((TextView)get("reading")).getText().toString().contains("RSI14"),"native chart callback");c.zoom(.75f);
-  });shot("instrumented-chart-fixture");ui(()->checkNav());
+  });shot("instrumented-chart-fixture");ui(()->{checkNav();chartGestures();});dataGuards();
 
   for(String id:Lessons.IDS){final String current=id;ui(()->{
    set("tab",2);set("lessonId",current);invoke("render");

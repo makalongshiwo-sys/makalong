@@ -1,4 +1,4 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.tide.journal" android:versionCode="7" android:versionName="0.7-native-preview">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.tide.journal" android:versionCode="8" android:versionName="0.8-native-preview">
  <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="36" />
  <uses-permission android:name="android.permission.INTERNET"/><uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
  <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/><uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>

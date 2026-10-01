@@ -1,0 +1,107 @@
+name: Audit the published APK and source
+on:
+  push:
+    branches: ['codex/guanchao-simplify-live-data']
+    paths: ['.github/workflows/audit-release-apk.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  audit:
+    if: github.repository == 'makalongshiwo-sys/makalong' && github.ref == 'refs/heads/codex/guanchao-simplify-live-data'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: makalongshiwo-sys/makalong
+      RELEASE_TAG: guanchao-preview-20261001-f878c79
+    steps:
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v4
+        with:
+          packages: platform-tools
+          log-accepted-android-sdk-licenses: false
+      - name: Install official APK inspection tools
+        run: sdkmanager "build-tools;36.0.0"
+      - name: Download the actual published assets
+        run: |
+          mkdir -p audit
+          gh release download "$RELEASE_TAG" --repo "$GH_REPO" --pattern 'guanchao-0.7-f878c79.apk' --pattern 'guanchao-source-f878c79.zip' --pattern 'delivery.json' --dir audit
+      - name: Verify signature and Android package metadata
+        run: |
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs audit/guanchao-0.7-f878c79.apk | tee audit/signature.txt
+          "$ANDROID_HOME/build-tools/36.0.0/aapt2" dump badging audit/guanchao-0.7-f878c79.apk | tee audit/package-metadata.txt
+      - name: Inspect the application code and compare packaged source
+        run: |
+          python - <<'PY'
+          import hashlib, io, json, struct, zipfile
+          from collections import defaultdict
+          from pathlib import Path
+          root = Path("audit")
+          apk = (root / "guanchao-0.7-f878c79.apk").read_bytes()
+          src = (root / "guanchao-source-f878c79.zip").read_bytes()
+          receipt = json.loads((root / "delivery.json").read_text())
+          apk_hash = hashlib.sha256(apk).hexdigest()
+          source_hash = hashlib.sha256(src).hexdigest()
+          assert apk_hash == receipt["sha256"] == "8fadc1ab6eec57fc1fce4c775c42320e0da29134d0bfaad48bbe35b21690fe82"
+          assert source_hash == receipt["sourceArchiveSha256"] == "c70d3a3364e5d98f5f9ac38f68483ace98a9689e5ff87387e74f5c14ea5ab190"
+          assert len(apk) == receipt["bytes"]
+          package_metadata = (root / "package-metadata.txt").read_text()
+          assert "name='com.tide.journal'" in package_metadata
+          assert "versionCode='7'" in package_metadata
+          assert "com.tide.journal.MainActivity" in package_metadata
+          required = ["MainActivity", "data/Repository", "data/Store", "domain/Market", "domain/EtfHistory", "ui/CandleChart", "ui/FlowChart", "ui/NavItem", "ui/Ui", "sync/AlertJob"]
+          entries, breakdown, dex_summary = [], defaultdict(lambda: {"files": 0, "uncompressedBytes": 0, "compressedBytes": 0}), []
+          with zipfile.ZipFile(io.BytesIO(apk)) as archive:
+              assert archive.testzip() is None
+              names = archive.namelist()
+              assert {"AndroidManifest.xml", "resources.arsc", "classes.dex"}.issubset(names)
+              assert {"assets/explainers.json", "assets/etf-snapshot.json", "assets/reports.json"}.issubset(names)
+              dexes = [archive.read(name) for name in names if name.endswith(".dex")]
+              for class_name in required:
+                  descriptor = ("Lcom/tide/journal/" + class_name + ";").encode()
+                  assert any(descriptor in dex for dex in dexes), class_name
+              for info in archive.infolist():
+                  name = info.filename
+                  category = "compiled Java code" if name.endswith(".dex") else "compiled Android UI resources" if name == "resources.arsc" or name.startswith("res/") else "bundled JSON content" if name.startswith("assets/") else "Android manifest" if name == "AndroidManifest.xml" else "other entries"
+                  breakdown[category]["files"] += 1
+                  breakdown[category]["uncompressedBytes"] += info.file_size
+                  breakdown[category]["compressedBytes"] += info.compress_size
+                  entries.append({"path": name, "uncompressedBytes": info.file_size, "compressedBytes": info.compress_size})
+                  if name.endswith(".dex"):
+                      dex = archive.read(name)
+                      assert dex.startswith(b"dex\n") and struct.unpack_from("<I", dex, 32)[0] == len(dex)
+                      assert b"Landroid/webkit/WebView;" not in dex
+                      dex_summary.append({"file": name, "bytes": len(dex), "classDefinitions": struct.unpack_from("<I", dex, 96)[0], "methodReferences": struct.unpack_from("<I", dex, 88)[0]})
+          source_breakdown = defaultdict(lambda: {"files": 0, "uncompressedBytes": 0, "compressedBytes": 0})
+          with zipfile.ZipFile(io.BytesIO(src)) as archive:
+              assert archive.testzip() is None
+              for name, expected in receipt["sourceSha256"].items():
+                  assert hashlib.sha256(archive.read("guanchao-source/" + name)).hexdigest() == expected, name
+              for info in archive.infolist():
+                  if info.is_dir():
+                      continue
+                  local = info.filename.removeprefix("guanchao-source/")
+                  category = "application source and resources" if local.startswith("app/") else "tests and verification scripts" if local.startswith(("tests/", "scripts/", ".github/")) else "documentation, build files and other project content"
+                  source_breakdown[category]["files"] += 1
+                  source_breakdown[category]["uncompressedBytes"] += info.file_size
+                  source_breakdown[category]["compressedBytes"] += info.compress_size
+          report = {"apkBytes": len(apk), "apkSha256": apk_hash, "sourceZipBytes": len(src), "sourceZipSha256": source_hash, "sourceCommit": receipt["sourceCommit"], "signatureVerified": True, "package": "com.tide.journal", "versionCode": 7, "requiredClassesPresent": required, "dex": dex_summary, "apkBreakdown": dict(breakdown), "sourceBreakdown": dict(source_breakdown), "zipAndApkSigningOverheadBytes": len(apk) - sum(x["compressedBytes"] for x in entries), "apkEntries": entries, "originalEmulatorVerificationRun": receipt["verificationRun"], "physicalDeviceTested": False, "cloudPushVerified": False}
+          (root / "package-audit.json").write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n")
+          print("PACKAGE_AUDIT " + json.dumps({k:v for k,v in report.items() if k != "apkEntries"}, ensure_ascii=False))
+          PY
+      - name: Attach the audit to the release
+        run: |
+          if ! gh release view "$RELEASE_TAG" --repo "$GH_REPO" --json assets --jq '.assets[].name' | rg -x 'package-audit.json'; then
+            gh release upload "$RELEASE_TAG" --repo "$GH_REPO" audit/package-audit.json
+          fi
+      - name: Retain inspection records
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: published-apk-audit
+          path: audit/
+          retention-days: 30

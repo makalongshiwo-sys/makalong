@@ -1,0 +1,116 @@
+name: Deliver verified APK and matching source
+on:
+  push:
+    branches: ['codex/guanchao-simplify-live-data']
+    paths: ['.github/workflows/deliver-verified-apk.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: guanchao-delivery-f878c79
+  cancel-in-progress: false
+jobs:
+  deliver:
+    if: github.repository == 'makalongshiwo-sys/makalong' && github.ref == 'refs/heads/codex/guanchao-simplify-live-data'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: makalongshiwo-sys/makalong
+      SOURCE_SHA: f878c79dfcc0a276adabb0fc27ded0441320e6b1
+      VERIFIED_RUN: '36673624302'
+      VERIFIED_ARTIFACT: '11079167257'
+      APK_SHA256: 8fadc1ab6eec57fc1fce4c775c42320e0da29134d0bfaad48bbe35b21690fe82
+      RELEASE_TAG: guanchao-preview-20261001-f878c79
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: f878c79dfcc0a276adabb0fc27ded0441320e6b1
+          persist-credentials: false
+      - name: Confirm the tested source and download its verification archive
+        run: |
+          gh api "repos/$GH_REPO/actions/runs/$VERIFIED_RUN" > "$RUNNER_TEMP/verified-run.json"
+          gh api "repos/$GH_REPO/actions/artifacts/$VERIFIED_ARTIFACT" > "$RUNNER_TEMP/verified-artifact.json"
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          tmp = Path(os.environ["RUNNER_TEMP"])
+          run = json.loads((tmp / "verified-run.json").read_text())
+          artifact = json.loads((tmp / "verified-artifact.json").read_text())
+          assert run["conclusion"] == "success" and run["status"] == "completed"
+          assert run["head_sha"] == os.environ["SOURCE_SHA"]
+          assert artifact["workflow_run"]["id"] == int(os.environ["VERIFIED_RUN"])
+          assert artifact["workflow_run"]["head_sha"] == os.environ["SOURCE_SHA"]
+          assert not artifact["expired"]
+          PY
+          gh api "repos/$GH_REPO/actions/artifacts/$VERIFIED_ARTIFACT/zip" > "$RUNNER_TEMP/verified.zip"
+      - name: Extract only the verified application and archive its matching source
+        run: |
+          mkdir -p deliver
+          git archive --format=zip --prefix=guanchao-source/ --output="$RUNNER_TEMP/source-all.zip" "$SOURCE_SHA"
+          python - <<'PY'
+          import hashlib, json, os, zipfile
+          from pathlib import Path
+          tmp, out = Path(os.environ["RUNNER_TEMP"]), Path("deliver")
+          with zipfile.ZipFile(tmp / "verified.zip") as archive:
+              apk = archive.read("releases/guanchao-native-preview.apk")
+              receipt = json.loads(archive.read("releases/release.json"))
+          actual = hashlib.sha256(apk).hexdigest()
+          assert actual == os.environ["APK_SHA256"] == receipt["sha256"]
+          assert len(apk) == receipt["bytes"]
+          assert receipt["webRuntime"] is False
+          assert receipt["versionCode"] == 7
+          for name, expected in receipt["sourceSha256"].items():
+              path = Path(name)
+              assert path.is_relative_to("app/src/main")
+              assert hashlib.sha256(path.read_bytes()).hexdigest() == expected, name
+          apk_name = "guanchao-0.7-f878c79.apk"
+          source_name = "guanchao-source-f878c79.zip"
+          (out / apk_name).write_bytes(apk)
+          with zipfile.ZipFile(tmp / "source-all.zip") as src, zipfile.ZipFile(out / source_name, "w", zipfile.ZIP_DEFLATED) as dst:
+              for entry in src.infolist():
+                  local = entry.filename.removeprefix("guanchao-source/")
+                  if local.startswith(("releases/", "evidence/")):
+                      continue
+                  dst.writestr(entry, src.read(entry))
+          receipt.update(sourceCommit=os.environ["SOURCE_SHA"], verificationRun=int(os.environ["VERIFIED_RUN"]), verificationArtifact=int(os.environ["VERIFIED_ARTIFACT"]), cloudPushVerified=False, originOsDeviceTested=False, signing="Existing isolated CI verification signature; not the legacy installed-app signature", sourceArchiveSha256=hashlib.sha256((out / source_name).read_bytes()).hexdigest())
+          (out / "delivery.json").write_text(json.dumps(receipt, ensure_ascii=False, indent=2) + "\n")
+          sums = []
+          for name in [apk_name, source_name, "delivery.json"]:
+              sums.append(hashlib.sha256((out / name).read_bytes()).hexdigest() + "  " + name)
+          (out / "SHA256SUMS.txt").write_text("\n".join(sums) + "\n")
+          (out / "release-notes.md").write_text("""观潮新版原生 Android 预览版，提供可直接下载的 APK 与匹配源码 ZIP。
+
+          APK 来自已通过 Android 15 模拟器浅色、深色、大字体和原生功能测试的构建。源码对应提交 f878c79dfcc0a276adabb0fc27ded0441320e6b1；源码压缩包排除了历史安装包与旧截图，包含 app、构建脚本和测试。
+
+          安装文件：guanchao-0.7-f878c79.apk。
+          使用已有 CI 测试签名，可供全新安装；无法直接覆盖签名不同的旧版。卸载旧版会清除本地数据和设置，覆盖升级需要旧版的原签名。源码与安装包均不包含签名私钥。
+
+          vivo X80 / OriginOS 尚未真机验收；关闭 App 后的即时云推送尚未接通，需要厂商项目和服务端配置。行情为前台约三秒轮询，ETF 更新频率受公开披露来源限制。
+
+          验证记录：https://github.com/makalongshiwo-sys/makalong/actions/runs/36673624302
+          """, encoding="utf-8")
+          print(json.dumps({"apk": apk_name, "bytes": len(apk), "sha256": actual, "source": source_name}))
+          PY
+      - name: Publish standalone APK and source downloads
+        run: |
+          if gh release view "$RELEASE_TAG" --repo "$GH_REPO" > /dev/null 2>&1; then
+            gh release download "$RELEASE_TAG" --repo "$GH_REPO" --pattern 'guanchao-0.7-f878c79.apk' --dir "$RUNNER_TEMP/release-check"
+            python - <<'PY'
+          import hashlib, os
+          from pathlib import Path
+          apk = Path(os.environ["RUNNER_TEMP"]) / "release-check" / "guanchao-0.7-f878c79.apk"
+          assert hashlib.sha256(apk.read_bytes()).hexdigest() == os.environ["APK_SHA256"]
+          PY
+          else
+            gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "$SOURCE_SHA" --prerelease --title "观潮 0.7 · 原生界面重构预览版" --notes-file deliver/release-notes.md deliver/guanchao-0.7-f878c79.apk deliver/guanchao-source-f878c79.zip deliver/SHA256SUMS.txt deliver/delivery.json
+          fi
+          gh release view "$RELEASE_TAG" --repo "$GH_REPO" --json url,assets
+      - name: Keep delivery receipts and files
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: guanchao-standalone-delivery
+          path: deliver/
+          retention-days: 30

@@ -5,22 +5,68 @@ import java.lang.reflect.*;import java.util.*;import java.io.*;
 
 /** Separate signed instrumentation; fixtures never enter the production APK. */
 public final class NativeCheck extends Instrumentation {
- private MainActivity activity;private File out;private int checks;
- public void onCreate(Bundle args){super.onCreate(args);start();}
+ private MainActivity activity;private File out;private int checks;private String scenario;
+ public void onCreate(Bundle args){super.onCreate(args);scenario=args==null?"standard":args.getString("scenario","standard");start();}
  private Object get(String name)throws Exception{Field f=MainActivity.class.getDeclaredField(name);f.setAccessible(true);return f.get(activity);}
  private void set(String name,Object value)throws Exception{Field f=MainActivity.class.getDeclaredField(name);f.setAccessible(true);f.set(activity,value);}
  private void invoke(String name)throws Exception{Method m=MainActivity.class.getDeclaredMethod(name);m.setAccessible(true);m.invoke(activity);}
  private void check(boolean condition,String name){if(!condition)throw new AssertionError(name);checks++;}
  private interface Step{void run()throws Exception;}
  private void ui(Step step)throws Exception{Throwable[]error={null};runOnMainSync(()->{try{step.run();}catch(Throwable e){error[0]=e;}});if(error[0]!=null)throw new Exception(error[0]);waitForIdleSync();}
- private void shot(String name)throws Exception{SystemClock.sleep(700);Bitmap b=getUiAutomation().takeScreenshot();check(b!=null,"screenshot available");try(FileOutputStream f=new FileOutputStream(new File(out,name+".png"))){b.compress(Bitmap.CompressFormat.PNG,100,f);}b.recycle();}
+ private boolean containsText(android.view.View v,String text){if(v instanceof TextView&&((TextView)v).getText().toString().contains(text))return true;if(v instanceof android.view.ViewGroup){android.view.ViewGroup g=(android.view.ViewGroup)v;for(int i=0;i<g.getChildCount();i++)if(containsText(g.getChildAt(i),text))return true;}return false;}
+ private boolean containsClass(android.view.View v,String name){if(v.getClass().getName().equals(name))return true;if(v instanceof android.view.ViewGroup){android.view.ViewGroup g=(android.view.ViewGroup)v;for(int i=0;i<g.getChildCount();i++)if(containsClass(g.getChildAt(i),name))return true;}return false;}
+ private void checkNav()throws Exception{
+  LinearLayout nav=(LinearLayout)get("nav");check(nav.getChildCount()==5,"five navigation targets");
+  android.view.View chart=(android.view.View)get("chart"),scroll=(android.view.View)get("scroll");
+  int[] chartAt=new int[2],scrollAt=new int[2];chart.getLocationOnScreen(chartAt);scroll.getLocationOnScreen(scrollAt);
+  check(chartAt[1]+chart.getHeight()<=scrollAt[1]+scroll.getHeight()+2,"full chart fits initial phone viewport");
+  TextView price=(TextView)get("quote");check(price.getPaint().measureText(price.getText().toString())<=price.getWidth()+1,"single-line price fits");
+  for(int i=0;i<5;i++){
+   android.view.ViewGroup item=(android.view.ViewGroup)nav.getChildAt(i);TextView label=(TextView)item.getChildAt(2);
+   check(item.getWidth()>0&&item.getHeight()>=Ui.dp(activity,48),"navigation touch size "+i);
+   check(label.getPaint().measureText(label.getText().toString())<=label.getWidth()+1,"navigation label fits "+i);
+  }
+  double contrast=(android.graphics.Color.luminance(Ui.INK)+.05)/(android.graphics.Color.luminance(Ui.SURFACE)+.05);
+  check(Math.max(contrast,1/contrast)>=4.5,"body text contrast");
+  contrast=(android.graphics.Color.luminance(Ui.BLUE)+.05)/(android.graphics.Color.luminance(Ui.TINT)+.05);
+  check(Math.max(contrast,1/contrast)>=4.5,"selected button contrast");
+  boolean night=(activity.getResources().getConfiguration().uiMode&android.content.res.Configuration.UI_MODE_NIGHT_MASK)==android.content.res.Configuration.UI_MODE_NIGHT_YES;
+  check(Ui.isDark()==night,"system appearance followed");
+  check(night==scenario.equals("dark"),"requested appearance scenario active");
+  float expected=scenario.equals("large-text")?1.3f:1f;
+  check(Math.abs(activity.getResources().getConfiguration().fontScale-expected)<.02,"requested font scale active");
+ }
+ private void shot(String name)throws Exception{SystemClock.sleep(700);Bitmap b=getUiAutomation().takeScreenshot();check(b!=null,"screenshot available");try(FileOutputStream f=new FileOutputStream(new File(out,name+"-"+scenario+".png"))){b.compress(Bitmap.CompressFormat.PNG,100,f);}b.recycle();}
  public void onStart(){Bundle result=new Bundle();try{out=new File(getTargetContext().getExternalFilesDir(null),"verification");out.mkdirs();activity=(MainActivity)startActivitySync(new Intent(getTargetContext(),MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));waitForIdleSync();
   ui(()->{set("tab",0);invoke("render");set("generation",((Integer)get("generation"))+1);set("active",false);((Handler)get("main")).removeCallbacksAndMessages(null);
    List<Market.Bar>bars=new ArrayList<>();long size=Market.duration("4h"),base=Market.boundary("4h",System.currentTimeMillis())-90*size;for(int i=0;i<90;i++){double close=100+Math.sin(i*.4)*3+i*.05;bars.add(new Market.Bar(base+i*size,base+(i+1)*size-1,close-.4,close+1,close-1,close,100+i,true));}
-   CandleChart c=(CandleChart)get("chart");c.data(bars,Market.indicators(bars));((TextView)get("quote")).setText("测试夹具");((TextView)get("quoteMeta")).setText("TEST FIXTURE · 用于图表验证，不是真实行情");check(((TextView)get("reading")).getText().toString().contains("RSI14"),"native chart callback");c.zoom(.75f);
-  });shot("instrumented-chart-fixture");
-  for(String id:Lessons.IDS){final String current=id;ui(()->{set("tab",2);set("lessonId",current);set("stage",0);invoke("render");check(get("scene") instanceof SpatialLesson,"native GLES scene "+current);SpatialLesson s=(SpatialLesson)get("scene");s.resumeScene();double v=current.equals("rates")?10:current.equals("cuts")?1:current.equals("inflation")?50:current.equals("supply")?0:current.equals("jobs")?10:current.equals("etf")?0:current.equals("expectations")?50:current.equals("oi")?-50:5;Method m=MainActivity.class.getDeclaredMethod("updateLesson",double.class);m.setAccessible(true);m.invoke(activity,v);s.expanded(true);check(((List<?>)get("numbers")).size()==3,"accessible model readings");});shot("instrumented-lesson-"+id);}
-  ui(()->{Store s=Repository.get(activity).store;s.add("device-test-dedupe","test","test",1);s.add("device-test-dedupe","test","test",1);long count=s.notices().stream().filter(x->x[0].equals("device-test-dedupe")).count();check(count==1,"SQLite duplicate suppression");s.mark("device-test-dedupe");check(s.sent("device-test-dedupe"),"SQLite delivery persistence");s.getWritableDatabase().delete("inbox","id=?",new String[]{"device-test-dedupe"});});
+   CandleChart c=(CandleChart)get("chart");c.data(bars,Market.indicators(bars));((TextView)get("quote")).setText("示例 · 100.42");((TextView)get("quoteMeta")).setText("示例数据 · 非真实行情");check(((TextView)get("reading")).getText().toString().contains("RSI14"),"native chart callback");c.zoom(.75f);
+  });shot("instrumented-chart-fixture");ui(()->checkNav());
+
+  for(String id:Lessons.IDS){final String current=id;ui(()->{
+   set("tab",2);set("lessonId",current);invoke("render");
+   check(!containsClass((android.view.View)get("body"),"android.widget.SeekBar"),"no toy slider "+current);
+   check(containsText((android.view.View)get("body"),"一个例子"),"example explanation "+current);
+   check(containsText((android.view.View)get("body"),"对市场的影响"),"market explanation "+current);
+  });if(id.equals("etf")||id.equals("rates"))shot("instrumented-explanation-"+id);}
+  ui(()->{
+   set("tab",3);set("lessonId","");invoke("render");set("generation",((Integer)get("generation"))+1);
+   org.json.JSONArray rows=new org.json.JSONArray();java.time.LocalDate start=java.time.LocalDate.now(java.time.ZoneOffset.UTC).minusDays(69);
+   for(int i=0;i<70;i++)rows.put(new org.json.JSONObject().put("date",start.plusDays(i).toString()).put("total",i==69?org.json.JSONObject.NULL:i==68?1:10).put("status",i>=68?"partial":"complete").put("funds",new org.json.JSONArray()));
+   set("etfData",new org.json.JSONObject().put("rows",rows));set("etfRange","全部");set("etfLimit",30);invoke("drawEtf");
+   ((TextView)get("etfState")).setText("TEST FIXTURE · 70 个合成披露日，不是真实 ETF 数据");
+   check(containsText((android.view.View)get("etfRows"),"加载更早记录"),"history pagination");
+   check(((TextView)get("etfSummary")).getText().toString().contains("+680.0"),"partial days excluded from cumulative");
+   set("etfLimit",90);invoke("drawEtf");
+   check(!containsText((android.view.View)get("etfRows"),"加载更早记录"),"all 70 rows reachable");
+   check(containsText((android.view.View)get("etfRows"),start.toString()),"oldest history reachable");
+   set("etfRange","1个月");invoke("drawEtf");check(!containsText((android.view.View)get("etfRows"),start.toString()),"range filters oldest rows");
+  });shot("instrumented-etf-history-fixture");
+  ui(()->{set("tab",4);set("lessonId","");invoke("render");invoke("originHelp");
+   check(containsText((android.view.View)get("body"),"OriginOS 后台提醒"),"OriginOS help available");
+   check(containsText((android.view.View)get("body"),"即时提醒仍需接通厂商推送"),"push status not overstated");
+  });
+    ui(()->{Store s=Repository.get(activity).store;s.add("device-test-dedupe","test","test",1);s.add("device-test-dedupe","test","test",1);long count=s.notices().stream().filter(x->x[0].equals("device-test-dedupe")).count();check(count==1,"SQLite duplicate suppression");s.mark("device-test-dedupe");check(s.sent("device-test-dedupe"),"SQLite delivery persistence");s.getWritableDatabase().delete("inbox","id=?",new String[]{"device-test-dedupe"});});
   String receipt="{\"status\":\"passed\",\"checks\":"+checks+",\"fixtureScreenshotsLabeled\":true,\"physicalDevice\":false}";try(FileOutputStream f=new FileOutputStream(new File(out,"instrumentation.json"))){f.write(receipt.getBytes("UTF-8"));}result.putString("stream",receipt);finish(Activity.RESULT_OK,result);
  }catch(Throwable e){result.putString("stream",android.util.Log.getStackTraceString(e));finish(Activity.RESULT_CANCELED,result);}}
 }

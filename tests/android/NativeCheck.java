@@ -49,6 +49,17 @@ public final class NativeCheck extends Instrumentation {
   for(int action:new int[]{android.view.MotionEvent.ACTION_DOWN,android.view.MotionEvent.ACTION_UP}){android.view.MotionEvent e=touch(start,action,100);chart.onTouchEvent(e);e.recycle();}
   check(picks[0]==1,"single tap still opens candle details");chart.onPick(null);
  }
+ private void etfScrollRestore()throws Exception{
+  final org.json.JSONObject data=(org.json.JSONObject)get("etfData");
+  ui(()->{set("etfRange","全部");set("etfLimit",90);invoke("drawEtf");});SystemClock.sleep(250);
+  ui(()->{
+   ScrollView scroll=(ScrollView)get("scroll");scroll.scrollTo(0,1000);check(scroll.getScrollY()==1000,"ETF long history can scroll deeply");
+   set("restoreScrollY",1000);invoke("render");set("generation",((Integer)get("generation"))+1);invoke("restoreScroll");
+   check(((Integer)get("restoreScrollY"))==1000,"ETF restore waits for disclosure rows");
+   set("etfData",data);set("etfRange","全部");set("etfLimit",90);invoke("drawEtf");
+  });SystemClock.sleep(250);
+  ui(()->{check(((ScrollView)get("scroll")).getScrollY()==1000,"ETF restores deep position after rows are laid out");set("etfRange","1个月");invoke("drawEtf");((ScrollView)get("scroll")).scrollTo(0,0);((TextView)get("etfState")).setText("TEST FIXTURE · 70 个合成披露日，不是真实 ETF 数据");});
+ }
  private void dataGuards()throws Exception{
   Repository repo=Repository.get(activity);Repository.validate("etf-snapshot",new org.json.JSONObject(repo.asset("etf-snapshot.json")));
   check(true,"bundled ETF rows pass strict validation");
@@ -92,7 +103,7 @@ public final class NativeCheck extends Instrumentation {
    check(!containsText((android.view.View)get("etfRows"),"加载更早记录"),"all 70 rows reachable");
    check(containsText((android.view.View)get("etfRows"),start.toString()),"oldest history reachable");
    set("etfRange","1个月");invoke("drawEtf");check(!containsText((android.view.View)get("etfRows"),start.toString()),"range filters oldest rows");
-  });shot("instrumented-etf-history-fixture");
+  });etfScrollRestore();shot("instrumented-etf-history-fixture");
   ui(()->{set("tab",4);set("lessonId","");invoke("render");invoke("originHelp");
    check(containsText((android.view.View)get("body"),"OriginOS 后台提醒"),"OriginOS help available");
    check(containsText((android.view.View)get("body"),"即时提醒仍需接通厂商推送"),"push status not overstated");

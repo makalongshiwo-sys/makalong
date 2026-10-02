@@ -102,6 +102,13 @@ public final class NativeCheck extends Instrumentation {
    boolean ongoing=false;for(android.service.notification.StatusBarNotification n:activity.getSystemService(NotificationManager.class).getActiveNotifications())if(n.getId()==900)ongoing=(n.getNotification().flags&Notification.FLAG_ONGOING_EVENT)!=0;
    check(ongoing,"watch has visible ongoing Android notification");
    ui(()->activity.moveTaskToBack(true));SystemClock.sleep(1200);check(prefs.getBoolean("watchRunning",false),"watch survives Activity entering background");
+   if(scenario.equals("light")){
+    long first=0,second=0,deadline=SystemClock.elapsedRealtime()+45000;long session=prefs.getLong("watchStarted",0);
+    while(SystemClock.elapsedRealtime()<deadline){long response=prefs.getLong("watchResponse",0);if(response>=session){if(first==0)first=response;else if(response>first){second=response;break;}}SystemClock.sleep(500);}
+    check(first>0&&second>first,"two fresh real-source quote refreshes while Activity remains in background");
+    check(prefs.getString("watchResult","").matches(".*BTC [0-9,.]+.*ETH [0-9,.]+.*SOL [0-9,.]+.*"),"background status contains three live source prices");
+    try(FileOutputStream f=new FileOutputStream(new File(out,"background-live-source.json"))){f.write(("{\"status\":\"passed\",\"firstSourceRefresh\":"+first+",\"secondSourceRefresh\":"+second+",\"fixtureData\":false,\"physicalDevice\":false}").getBytes("UTF-8"));}
+   }
    SignalChecks.deliver(activity,()->true,id+"-background","TEST FIXTURE · background notification","Background delivery fixture, not a real market signal",System.currentTimeMillis(),"close");check(repo.store.sent(id+"-background"),"notification pipeline delivers while Activity is backgrounded");
    ui(()->WatchService.stop(activity));SystemClock.sleep(700);check(!prefs.getBoolean("watchRunning",true),"user stop cancels live watch");
    boolean remains=false;for(android.service.notification.StatusBarNotification n:activity.getSystemService(NotificationManager.class).getActiveNotifications())if(n.getId()==900)remains=true;check(!remains,"stop removes ongoing notification; late work cannot restore it");

@@ -1,0 +1,64 @@
+name: Public Guanchao signal feed
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/cloud-signals.yml']
+permissions:
+  contents: write
+concurrency:
+  group: guanchao-public-signal-feed
+  cancel-in-progress: false
+jobs:
+  signals:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 7ea7a67d1287b7f4baa295a3dd37a8328aee023e
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Compile shared candle semantics
+        run: |
+          mkdir -p out/cloud
+          javac -encoding UTF-8 -d out/cloud app/src/main/java/com/tide/journal/domain/Market.java cloud/CloudAnalysis.java
+      - name: Retrieve previous public event IDs
+        run: |
+          mkdir -p signals
+          if git fetch origin guanchao-live-signals; then
+            git show FETCH_HEAD:signals/state.json > signals/state.json
+          fi
+      - name: Check current public source data
+        id: check
+        run: |
+          python cloud/monitor.py | tee out/cloud/result.txt
+          echo "new=$(sed -n 's/NEW_SIGNALS=//p' out/cloud/result.txt)" >> "$GITHUB_OUTPUT"
+      - name: Persist public signal feed independently of reports
+        run: |
+          cp signals/state.json "$RUNNER_TEMP/guanchao-signal-state.json"
+          if git fetch origin guanchao-live-signals; then
+            git checkout -B live-state FETCH_HEAD
+          else
+            git checkout --orphan live-state
+            git rm -rf --cached .
+            git clean -fd
+          fi
+          mkdir -p signals
+          cp "$RUNNER_TEMP/guanchao-signal-state.json" signals/state.json
+          git add signals/state.json
+          git -c user.name='Guanchao signal feed' -c user.email='actions@users.noreply.github.com' commit -m 'Refresh public source-backed signals'
+          git push origin HEAD:guanchao-live-signals
+      - name: Wake native listeners when new events exist
+        if: steps.check.outputs.new == 'true'
+        env:
+          REPOSITORY_ID: ${{ github.repository_id }}
+        run: |
+          curl --fail --silent --show-error --max-time 15 \
+            -H 'Content-Type: application/json' \
+            -d "{\"topic\":\"guanchao-signals-$REPOSITORY_ID\",\"message\":\"refresh\",\"priority\":1}" \
+            https://ntfy.sh/

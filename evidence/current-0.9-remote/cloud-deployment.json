@@ -1,0 +1,9 @@
+{
+  "sourceCommit": "7ea7a67d1287b7f4baa295a3dd37a8328aee023e",
+  "deploymentCommit": "499ac30ab70f0ca51aec2ceefc44e3c103a51c12",
+  "firstWorkflowRun": 37004460166,
+  "workflowSuccess": true,
+  "firstSourceCoverage": "6/6",
+  "reportsModified": false,
+  "privateDataPublished": false
+}

@@ -1,0 +1,83 @@
+[
+  {
+    "id": "rates",
+    "title": "加息",
+    "summary": "借钱通常会更贵，部分消费和投资可能放缓。",
+    "example": "借款 1 万元，年利率从 3% 升到 5%，本金全年不变时，一年利息从 300 元变成 500 元。",
+    "impact": "融资成本、储蓄意愿和市场预期会改变，传导需要时间。",
+    "caution": "加息不能直接解决缺货，也不代表币价一定下跌。",
+    "source": "https://www.federalreserve.gov/faqs/money_12856.htm"
+  },
+  {
+    "id": "cuts",
+    "title": "降息",
+    "summary": "借钱可能更便宜，但还要看为什么降息。",
+    "example": "同一笔 1 万元借款，年利率从 5% 降到 3%，一年单利少 200 元。",
+    "impact": "通胀缓和后的降息，与经济走弱时的降息，对信心的影响可能不同。",
+    "caution": "降息不保证资产上涨；既有固定利率贷款也未必马上变便宜。",
+    "source": "https://www.federalreserve.gov/faqs/money_12856.htm"
+  },
+  {
+    "id": "inflation",
+    "title": "通胀",
+    "summary": "整体物价上涨，同样的钱通常能买到更少的东西。",
+    "example": "商品从 5 元涨到 6 元，100 元能买的数量从 20 件降到约 16.7 件。",
+    "impact": "市场会关注物价变化是否影响政策利率、收入和消费。",
+    "caution": "通胀回落是涨价速度变慢，价格仍可能上涨。单件商品不代表整体通胀。",
+    "source": "https://www.ecb.europa.eu/ecb-and-you/explainers/tell-me-more/html/what_is_inflation.en.html"
+  },
+  {
+    "id": "supply",
+    "title": "供给与需求",
+    "summary": "想买的人更多，或可售的东西更少，都可能推高价格。",
+    "example": "20 人各想买 1 件，只有 12 件商品，当前价格下有人买不到。",
+    "impact": "要结合销量、库存与成本判断变化来自需求还是供给。",
+    "caution": "缺口不能直接算出应该涨价多少；加息也不能直接修复物流。",
+    "source": "https://www.federalreserve.gov/faqs/money_12856.htm"
+  },
+  {
+    "id": "jobs",
+    "title": "就业与失业率",
+    "summary": "失业率既取决于失业人数，也取决于有多少人在劳动力市场。",
+    "example": "失业人数不变，有些人不再找工作、退出劳动力市场，失业率也可能下降。",
+    "impact": "就业、工资和参与率一起看，才能判断需求是否有韧性。",
+    "caution": "失业率下降不一定代表更多人找到了工作。",
+    "source": "https://www.bls.gov/cps/cps_htgm.htm"
+  },
+  {
+    "id": "etf",
+    "title": "ETF 净流入",
+    "summary": "申购减去赎回，反映基金资金的净变化。",
+    "example": "某日申购 1 亿美元、赎回 6000 万美元，净流入为 4000 万美元。",
+    "impact": "先看同交易日总体，再看哪些基金贡献了变化。",
+    "caution": "净流入不等于成交量；资产规模也会随价格改变。未披露不能算零，周末没有新披露不代表零流入。",
+    "source": "https://farside.co.uk/btc/"
+  },
+  {
+    "id": "expectations",
+    "title": "预期差",
+    "summary": "市场常常对实际结果与原先预期的差距作出反应。",
+    "example": "如果大家早已预期降息，正式宣布时可能没有新的意外。",
+    "impact": "既要看公布的数字，也要核对市场此前预期和之后的解释。",
+    "caution": "好消息不保证上涨，坏消息也不保证下跌。",
+    "source": "https://www.federalreserve.gov/monetarypolicy.htm"
+  },
+  {
+    "id": "oi",
+    "title": "未平仓量 OI",
+    "summary": "还没有平掉的合约数量，反映参与规模。",
+    "example": "合约数量增加可能表示新仓进入；美元计价的 OI 还会受到价格变化影响。",
+    "impact": "结合价格、资金费率和跨交易所数据观察杠杆参与。",
+    "caution": "OI 增加不能单独证明看涨；多头与空头共同形成合约。",
+    "source": "https://www.cmegroup.com/education/courses/introduction-to-futures/open-interest.html"
+  },
+  {
+    "id": "leverage",
+    "title": "杠杆",
+    "summary": "借用资金放大敞口，收益和损失都可能放大。",
+    "example": "100 元保证金控制 500 元敞口，相同价格波动带来的盈亏是 100 元敞口的约 5 倍，尚未计费。",
+    "impact": "市场高杠杆可能让价格波动与清算相互影响。",
+    "caution": "这里只解释风险；真实强平价还取决于保证金规则、费用与仓位。",
+    "source": "https://www.cmegroup.com/education/courses/introduction-to-futures.html"
+  }
+]

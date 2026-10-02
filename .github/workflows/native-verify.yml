@@ -1,7 +1,7 @@
 name: Native Android verification
 on:
   push:
-    paths: ['app/**', 'tests/**', 'build.py', '.github/workflows/native-verify.yml', 'releases/**']
+    paths: ['app/**', 'tests/**', 'build.py', '.github/workflows/native-verify.yml', 'releases/**', 'scripts/backup-signing.py', 'signing-recovery-public.pem', 'cloud/**']
   pull_request:
   workflow_dispatch:
 permissions:
@@ -10,8 +10,12 @@ jobs:
   native:
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    env:
+      PYTHONUNBUFFERED: "1"
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -20,13 +24,30 @@ jobs:
         run: |
           mkdir -p evidence/ci
           bash tests/run-domain.sh | tee evidence/ci/domain.txt
+      - name: Cloud feed regressions and current provider receipt
+        run: |
+          python tests/cloud-monitor-test.py
+          mkdir -p out/cloud
+          javac -encoding UTF-8 -d out/cloud app/src/main/java/com/tide/journal/domain/Market.java cloud/CloudAnalysis.java
+          python cloud/monitor.py --state evidence/ci/cloud-source-probe.json
+          python -c "import json; s=json.load(open('evidence/ci/cloud-source-probe.json')); assert s['validCoverage']==6 and len(s['quotes'])==3, s"
+      - name: Check public ETF history sources
+        run: python scripts/check-etf-source.py
       - uses: android-actions/setup-android@v4
         with:
           packages: platform-tools
           log-accepted-android-sdk-licenses: false
       - name: Install verification tools
         run: sdkmanager "build-tools;36.0.0"
-      - name: Verify shipped APK identity
+      - name: Compile current source and encrypt its signing key for private recovery
+        run: |
+          sdkmanager "platforms;android-36"
+          keytool -genkeypair -keystore "$RUNNER_TEMP/verification.jks" -alias androiddebugkey -storepass android -keypass android -dname "CN=Guanchao Native 0.9" -keyalg RSA -validity 10000
+          python -m pip install --quiet Pillow
+          python scripts/backup-signing.py "$RUNNER_TEMP/verification.jks"
+          python build.py "$ANDROID_HOME" --key "$RUNNER_TEMP/verification.jks"
+          python tests/build-instrumentation.py "$ANDROID_HOME" "$RUNNER_TEMP/verification.jks"
+      - name: Verify current verification APK identity
         run: |
           python tests/verify-package.py
           "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs releases/guanchao-native-preview.apk | tee evidence/ci/signature.txt
@@ -35,21 +56,24 @@ jobs:
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
-      - name: Install and exercise the exact signed preview APK
+      - name: Exercise the current-source verification APK
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 35
-          target: default
+          api-level: 36
+          target: google_apis
           arch: x86_64
           profile: pixel_2
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -camera-front none
           script: python tests/device-smoke.py
-      - name: Evidence and tested package
+      - name: Export real native layout previews
+        if: success()
+        run: python scripts/export-ui-previews.py
+      - name: Evidence and CI verification package
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: native-verification-${{ github.sha }}
+          name: native-ci-verification-${{ github.sha }}
           path: |
             evidence/ci/
             releases/

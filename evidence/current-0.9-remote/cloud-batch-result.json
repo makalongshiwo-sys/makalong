@@ -1,0 +1,15 @@
+{
+  "deploymentCommit": "2d598f0d06a9005d776c3388dcf13d342ba4f376",
+  "runId": 37006430782,
+  "firstGeneratedAt": 1790943858106,
+  "secondGeneratedAt": 1790943935658,
+  "continuousSourceRefreshVerified": true,
+  "validCoverage": 6,
+  "failures": [],
+  "roundLimit": 10,
+  "timeoutMinutes": 15,
+  "scheduleMinutes": 5,
+  "betweenChecksSeconds": 60,
+  "jobStatusAtObservation": "in_progress",
+  "cronTriggeredRunObserved": false
+}

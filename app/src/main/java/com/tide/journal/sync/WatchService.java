@@ -52,7 +52,7 @@ public final class WatchService extends Service {
   android.content.SharedPreferences prefs=AlertJob.prefs(this);String key="lastVolatility-"+coin;
   PriceWindow window=history.computeIfAbsent(coin,k->new PriceWindow(prefs.getLong(key,0)));
   PriceWindow.Move move=window.observe(q.price,q.asOf,System.currentTimeMillis(),prefs.getFloat("volatilityPct",1f));
-  if(move!=null&&SignalChecks.deliver(this,this::enabled,"volatility:"+coin+":"+move.at,coin+" 短时波动 "+String.format(Locale.US,"%+.2f%%",move.percent),"最近 "+move.seconds+" 秒，由 "+String.format(Locale.US,"%,.2f",move.before)+" 到 "+String.format(Locale.US,"%,.2f",move.price)+" USDT。来自新鲜报价；不是买卖建议。",move.at,"volatility")){window.markAlert(move.at);prefs.edit().putLong(key,move.at).apply();}
+  if(move!=null&&SignalChecks.deliverVolatility(this,this::enabled,coin,move.percent,"volatility:"+coin+":"+move.at,coin+" 短时波动 "+String.format(Locale.US,"%+.2f%%",move.percent),"最近 "+move.seconds+" 秒，由 "+String.format(Locale.US,"%,.2f",move.before)+" 到 "+String.format(Locale.US,"%,.2f",move.price)+" USDT。来自新鲜报价；不是买卖建议。",move.at)){window.markAlert(move.at);}
  }
  @Override public void onTimeout(int startId,int fgsType){AlertJob.prefs(this).edit().putBoolean("watchWanted",false).putString("watchResult","本次盯盘已到系统时长限制，请回到应用重新开启").apply();stopSelf();}
  @Override public void onDestroy(){running=false;main.removeCallbacksAndMessages(null);if(request!=null)request.cancel(true);executor.shutdownNow();AlertJob.prefs(this).edit().putBoolean("watchRunning",false).apply();stopForeground(STOP_FOREGROUND_REMOVE);super.onDestroy();}

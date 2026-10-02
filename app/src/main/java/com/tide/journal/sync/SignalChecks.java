@@ -27,6 +27,12 @@ public final class SignalChecks {
   }catch(Exception e){issue=e.getMessage()==null?"研究来源不可用":e.getMessage();}
   if(enabled.getAsBoolean()){SharedPreferences.Editor edit=p.edit().putString("lastResult","行情有效覆盖 "+valid+"/6"+(issue.isEmpty()?"":" · "+issue));if(valid==6)edit.putLong("lastSuccess",System.currentTimeMillis());edit.apply();}
  }
+ public static boolean deliverVolatility(Context c,BooleanSupplier enabled,String coin,double change,String id,String title,String body,long at){
+  if(!java.util.Arrays.asList("BTC","ETH","SOL").contains(coin)||!Double.isFinite(change))return false;
+  Store store=Repository.get(c).store;
+  synchronized(store){SharedPreferences p=AlertJob.prefs(c);if(Math.abs(change)<p.getFloat("volatilityPct",1f)||at-p.getLong("lastVolatility-"+coin,0)<300000)return false;
+   boolean accepted=deliver(c,enabled,id,title,body,at,"volatility");if(accepted)p.edit().putLong("lastVolatility-"+coin,at).apply();return accepted;}
+ }
  public static boolean deliver(Context c,BooleanSupplier enabled,String id,String title,String body,long at,String type){
   long now=System.currentTimeMillis();SharedPreferences p=AlertJob.prefs(c);
   if(!enabled.getAsBoolean()||!p.getBoolean("alerts",false)||!p.getBoolean("type_"+type,true)||at<p.getLong("enabledAt",now)||at>now||now-at>86400000)return false;

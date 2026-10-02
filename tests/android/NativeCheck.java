@@ -118,18 +118,33 @@ public final class NativeCheck extends Instrumentation {
    repo.store.getWritableDatabase().delete("inbox","id LIKE ?",new String[]{id+"%"});for(String suffix:new String[]{"","-background"})activity.getSystemService(NotificationManager.class).cancel(id+suffix,0);
   }
  }
+ private void remotePacketGuards()throws Exception{
+  long now=System.currentTimeMillis();org.json.JSONObject event=new org.json.JSONObject().put("id","test:close").put("title","TEST FIXTURE").put("body","fixture").put("at",now).put("type","close");
+  org.json.JSONObject packet=new org.json.JSONObject().put("schemaVersion",1).put("feed","guanchao-public-signals").put("generatedAt",now).put("startedAt",now-1000).put("validCoverage",6).put("events",new org.json.JSONArray().put(event));
+  check(PushPacket.parse(packet,now).events.size()==1,"valid authenticated feed packet parsed");
+  for(String field:new String[]{"generatedAt","feed","validCoverage"}){org.json.JSONObject broken=new org.json.JSONObject(packet.toString());if(field.equals("generatedAt"))broken.put(field,now-16*60*1000);else if(field.equals("feed"))broken.put(field,"foreign-feed");else broken.put(field,7);try{PushPacket.parse(broken,now);throw new AssertionError("corrupt remote packet accepted");}catch(java.io.IOException expected){checks++;}}
+  org.json.JSONObject broken=new org.json.JSONObject(packet.toString());broken.getJSONArray("events").put(new org.json.JSONObject(event.toString()).put("id","test:bad").put("type","untrusted"));
+  try{PushPacket.parse(broken,now);throw new AssertionError("partial invalid packet accepted");}catch(java.io.IOException expected){checks++;}
+  android.content.SharedPreferences p=AlertJob.prefs(activity);java.util.Map<String,?> original=p.getAll();String prefix="cooldown-fixture:"+now;
+  try{p.edit().putBoolean("alerts",true).putBoolean("type_volatility",true).putLong("enabledAt",now-1000).remove("lastVolatility-BTC").putFloat("volatilityPct",1f).commit();java.util.concurrent.ExecutorService pool=java.util.concurrent.Executors.newFixedThreadPool(2);java.util.concurrent.CountDownLatch gate=new java.util.concurrent.CountDownLatch(1);
+   java.util.concurrent.Future<Boolean> first=pool.submit(()->{gate.await();return SignalChecks.deliverVolatility(activity,()->true,"BTC",2,prefix+"local","TEST FIXTURE · local","fixture",now);});java.util.concurrent.Future<Boolean> second=pool.submit(()->{gate.await();return SignalChecks.deliverVolatility(activity,()->true,"BTC",2,prefix+"cloud","TEST FIXTURE · remote","fixture",now);});gate.countDown();boolean x=first.get(),y=second.get();pool.shutdownNow();check(x!=y,"concurrent local and remote wave yield one accepted alert");check(p.getLong("lastVolatility-BTC",0)==now,"shared cooldown persisted");
+  }finally{restorePrefs(p,original);Repository.get(activity).store.getWritableDatabase().delete("inbox","id LIKE ?",new String[]{prefix+"%"});activity.getSystemService(NotificationManager.class).cancel(prefix+"local",0);activity.getSystemService(NotificationManager.class).cancel(prefix+"cloud",0);}
+ }
+ private void restorePrefs(android.content.SharedPreferences p,java.util.Map<String,?> original){android.content.SharedPreferences.Editor edit=p.edit().clear();for(java.util.Map.Entry<String,?> entry:original.entrySet()){Object v=entry.getValue();String k=entry.getKey();if(v instanceof Boolean)edit.putBoolean(k,(Boolean)v);else if(v instanceof Long)edit.putLong(k,(Long)v);else if(v instanceof Integer)edit.putInt(k,(Integer)v);else if(v instanceof Float)edit.putFloat(k,(Float)v);else if(v instanceof String)edit.putString(k,(String)v);}edit.commit();}
  private void recentTaskRemoval()throws Exception{
   android.content.SharedPreferences prefs=AlertJob.prefs(activity);java.util.Map<String,?> original=prefs.getAll();
   try{
-   prefs.edit().putBoolean("alerts",true).putLong("enabledAt",System.currentTimeMillis()).commit();ui(()->WatchService.start(activity));SystemClock.sleep(1000);
+   prefs.edit().putBoolean("alerts",true).putLong("enabledAt",System.currentTimeMillis()).commit();ui(()->{WatchService.start(activity);PushService.start(activity);});SystemClock.sleep(1000);
    check(prefs.getBoolean("watchRunning",false),"watch enabled before recent task removal");
    ui(()->activity.finishAndRemoveTask());SystemClock.sleep(1800);
+   boolean remoteOngoing=false;for(android.service.notification.StatusBarNotification n:getTargetContext().getSystemService(NotificationManager.class).getActiveNotifications())if(n.getId()==901)remoteOngoing=true;check(remoteOngoing,"Google-independent remote subscriber survives recent task removal");
+   if(scenario.equals("light")){long deadline=SystemClock.elapsedRealtime()+45000;while(SystemClock.elapsedRealtime()<deadline&&(prefs.getLong("pushConnected",0)==0||prefs.getLong("pushFeedRead",0)==0))SystemClock.sleep(500);check(prefs.getLong("pushConnected",0)>0,"real HTTPS ntfy stream connected after recent task removal");check(prefs.getLong("pushFeedRead",0)>0,"real own cloud feed fetched and validated after recent task removal");}
    check(activity.isDestroyed(),"Activity destroyed and its recent task removed");check(prefs.getBoolean("watchRunning",false),"standard Android recent task removal preserves explicit watch");
    boolean ongoing=false;for(android.service.notification.StatusBarNotification n:getTargetContext().getSystemService(NotificationManager.class).getActiveNotifications())if(n.getId()==900)ongoing=true;check(ongoing,"ongoing notification remains after removal from recents");
    long at=System.currentTimeMillis();String id="recent-removal-test:"+at;check(SignalChecks.deliver(getTargetContext(),()->true,id,"TEST FIXTURE · recent task removed","Notification test after task removal, not a real market event",at,"close"),"notification accepted after Activity and recent task are gone");check(Repository.get(getTargetContext()).store.sent(id),"notification delivered after recent task removal");
    Repository.get(getTargetContext()).store.getWritableDatabase().delete("inbox","id=?",new String[]{id});getTargetContext().getSystemService(NotificationManager.class).cancel(id,0);
   }finally{
-   WatchService.stop(getTargetContext());SystemClock.sleep(500);android.content.SharedPreferences.Editor edit=prefs.edit().clear();for(java.util.Map.Entry<String,?> entry:original.entrySet()){Object v=entry.getValue();String k=entry.getKey();if(v instanceof Boolean)edit.putBoolean(k,(Boolean)v);else if(v instanceof Long)edit.putLong(k,(Long)v);else if(v instanceof Integer)edit.putInt(k,(Integer)v);else if(v instanceof Float)edit.putFloat(k,(Float)v);else if(v instanceof String)edit.putString(k,(String)v);}edit.commit();
+   WatchService.stop(getTargetContext());PushService.stop(getTargetContext());SystemClock.sleep(500);android.content.SharedPreferences.Editor edit=prefs.edit().clear();for(java.util.Map.Entry<String,?> entry:original.entrySet()){Object v=entry.getValue();String k=entry.getKey();if(v instanceof Boolean)edit.putBoolean(k,(Boolean)v);else if(v instanceof Long)edit.putLong(k,(Long)v);else if(v instanceof Integer)edit.putInt(k,(Integer)v);else if(v instanceof Float)edit.putFloat(k,(Float)v);else if(v instanceof String)edit.putString(k,(String)v);}edit.commit();
    activity=(MainActivity)startActivitySync(new Intent(getTargetContext(),MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));waitForIdleSync();
   }
  }
@@ -138,7 +153,7 @@ public final class NativeCheck extends Instrumentation {
   ui(()->{set("tab",0);invoke("render");set("generation",((Integer)get("generation"))+1);set("active",false);((Handler)get("main")).removeCallbacksAndMessages(null);
    List<Market.Bar>bars=new ArrayList<>();long size=Market.duration("4h"),base=Market.boundary("4h",System.currentTimeMillis())-90*size;for(int i=0;i<90;i++){double close=100+Math.sin(i*.4)*3+i*.05;bars.add(new Market.Bar(base+i*size,base+(i+1)*size-1,close-.4,close+1,close-1,close,100+i,true));}
    CandleChart c=(CandleChart)get("chart");c.data(bars,Market.indicators(bars));((TextView)get("quote")).setText("示例 · 100.42");((TextView)get("quoteMeta")).setText("示例数据 · 非真实行情");check(((TextView)get("reading")).getText().toString().contains("RSI14"),"native chart callback");c.zoom(.75f);
-  });shot("instrumented-chart-fixture");ui(()->{checkNav();chartGestures();});dataGuards();offlineAndSignals();
+  });shot("instrumented-chart-fixture");ui(()->{checkNav();chartGestures();});dataGuards();offlineAndSignals();remotePacketGuards();
 
   for(String id:Lessons.IDS){final String current=id;ui(()->{
    set("tab",2);set("lessonId",current);invoke("render");
@@ -161,7 +176,7 @@ public final class NativeCheck extends Instrumentation {
   });etfScrollRestore();shot("instrumented-etf-history-fixture");
   ui(()->{set("tab",4);set("lessonId","");invoke("render");invoke("originHelp");
    check(containsText((android.view.View)get("body"),"OriginOS 后台提醒"),"OriginOS help available");
-   check(containsText((android.view.View)get("body"),"即时提醒仍需接通厂商推送"),"push status not overstated");
+   check(containsText((android.view.View)get("body"),"可以照常划掉最近任务"),"third-party background guidance available");
   });
     ui(()->{Store s=Repository.get(activity).store;s.add("device-test-dedupe","test","test",1);s.add("device-test-dedupe","test","test",1);long count=s.notices().stream().filter(x->x[0].equals("device-test-dedupe")).count();check(count==1,"SQLite duplicate suppression");s.mark("device-test-dedupe");check(s.sent("device-test-dedupe"),"SQLite delivery persistence");s.getWritableDatabase().delete("inbox","id=?",new String[]{"device-test-dedupe"});});
   recentTaskRemoval();

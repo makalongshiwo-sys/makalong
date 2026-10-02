@@ -30,7 +30,7 @@ public final class HttpRequests {
  public static String get(String url) throws IOException {
   checkCancelled();URI u;
   try{u=URI.create(url);}catch(IllegalArgumentException e){throw new IOException("来源地址无效",e);}
-  if(!"https".equals(u.getScheme())||u.getUserInfo()!=null||(u.getPort()!=-1&&u.getPort()!=443)||!Arrays.asList("raw.githubusercontent.com","data-api.binance.vision","fapi.binance.com","gamma-api.polymarket.com","www.federalreserve.gov","farside.co.uk").contains(u.getHost()))throw new IOException("来源未获准");
+  if(!"https".equals(u.getScheme())||u.getUserInfo()!=null||(u.getPort()!=-1&&u.getPort()!=443)||!Arrays.asList("raw.githubusercontent.com","api.github.com","data-api.binance.vision","fapi.binance.com","gamma-api.polymarket.com","www.federalreserve.gov","farside.co.uk").contains(u.getHost()))throw new IOException("来源未获准");
   return receive((HttpURLConnection)new URL(url).openConnection());
  }
  static String receive(HttpURLConnection c) throws IOException {

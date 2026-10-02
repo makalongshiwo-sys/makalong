@@ -1,9 +1,9 @@
 """Exercise actual native controls through Android's UI hierarchy. No mock screenshots."""
 from pathlib import Path
-import subprocess,time,re,json,xml.etree.ElementTree as ET,hashlib
+import subprocess,time,re,json,xml.etree.ElementTree as ET,hashlib,urllib.request
 out=Path('evidence/ci');out.mkdir(parents=True,exist_ok=True);steps=[]
 def adb(*args,check=True):
- return subprocess.run(['adb',*map(str,args)],capture_output=True,check=check,timeout=50).stdout
+ return subprocess.run(['adb',*map(str,args)],capture_output=True,check=check,timeout=180 if "instrument" in args else 50).stdout
 def capture(name):
  (out/(name+'.png')).write_bytes(adb('exec-out','screencap','-p'))
 def tree():
@@ -50,8 +50,37 @@ try:
   print('Native layout checks passed: '+scenario)
 
  adb('pull','/sdcard/Android/data/com.guanchao.app/files/verification',str(out/'instrumentation'))
+ # Real independent stream, then an emulator-only OS process kill (not force-stop).
+ adb('shell','am','start','-W','-n','com.guanchao.app/com.tide.journal.MainActivity');time.sleep(1);click('提醒');click('开启远程提醒',scrolls=5);time.sleep(2);capture('13-remote-link')
+ adb('root');adb('wait-for-device');assert adb('shell','id').decode().startswith('uid=0'), 'Debug emulator root unavailable for actual process-kill test'
+ def pref(name):
+  root=ET.fromstring(adb('shell','cat','/data/user/0/com.guanchao.app/shared_prefs/native-settings.xml'))
+  found=next((n for n in root if n.get('name')==name),None)
+  return int(found.get('value','0')) if found is not None else 0
+ deadline=time.time()+45
+ while time.time()<deadline and (pref('pushConnected')==0 or pref('pushFeedRead')==0):time.sleep(.5)
+ assert pref('pushConnected')>0 and pref('pushFeedRead')>0,'No real connected subscriber and validated cloud feed'
+ adb('shell','input','keyevent','3');oldpid=adb('shell','pidof','com.guanchao.app').decode().strip();assert oldpid.isdigit();killed=int(time.time()*1000)
+ adb('shell','kill','-9',oldpid)
+ deadline=time.time()+50;newpid=''
+ while time.time()<deadline:
+  newpid=adb('shell','pidof','com.guanchao.app',check=False).decode().strip()
+  if newpid and newpid!=oldpid and pref('pushConnected')>=killed:break
+  time.sleep(.5)
+ assert newpid and newpid!=oldpid and pref('pushConnected')>=killed,'Sticky stream did not recover after OS process kill'
+ # Public channel message is only a wake-up. All prices/events are re-read from our TLS feed.
+ time.sleep(61);wake=int(time.time()*1000)
+ req=urllib.request.Request('https://ntfy.sh/',data=json.dumps({'topic':'guanchao-signals-1312595426','message':'refresh','priority':1}).encode(),headers={'Content-Type':'application/json'},method='POST')
+ with urllib.request.urlopen(req,timeout=15) as response:assert response.status==200
+ deadline=time.time()+35
+ while time.time()<deadline and (pref('pushWakeReceived')<wake or pref('pushFeedRead')<wake):time.sleep(.5)
+ assert pref('pushWakeReceived')>=wake and pref('pushFeedRead')>=wake,'Real stream wake did not cause a fresh authenticated source fetch'
+ services=adb('shell','dumpsys','activity','services','com.guanchao.app').decode(errors='replace');(out/'push-services.txt').write_text(services);assert 'PushService' in services and 'isForeground=true' in services
+ (out/'remote-link-result.json').write_text(json.dumps({'status':'passed','oldPid':oldpid,'newPid':newpid,'processKillAt':killed,'wakeSentAt':wake,'wakeReceivedAt':pref('pushWakeReceived'),'freshFeedReadAt':pref('pushFeedRead'),'googlePushUsed':False,'physicalDevice':False,'forceStopRecoveryVerified':False},indent=2))
+ adb('shell','am','start','-W','-n','com.guanchao.app/com.tide.journal.MainActivity');time.sleep(1);click('提醒');click('停止远程提醒',scrolls=5);time.sleep(1)
+ assert 'PushService' not in adb('shell','dumpsys','activity','services','com.guanchao.app').decode(errors='replace'), 'Remote stop did not end the stream service' 
  logs=adb('logcat','-d','-v','brief').decode(errors='replace');(out/'logcat.txt').write_text(logs);assert 'FATAL EXCEPTION' not in logs,'Runtime crash'
- result={'status':'passed','apkSha256':hashlib.sha256(Path('releases/guanchao-native-preview.apk').read_bytes()).hexdigest(),'device':adb('shell','getprop','ro.build.version.release').decode().strip(),'steps':steps,'sameSignerReinstallVerified':True,'parallelPackageName':'com.guanchao.app','physicalDevice':False,'cloudPushVerified':False,'viewport':[1080,2400],'originOsDeviceTested':False,'appearanceScenarios':['light','dark','large-text']}
+ result={'status':'passed','apkSha256':hashlib.sha256(Path('releases/guanchao-native-preview.apk').read_bytes()).hexdigest(),'device':adb('shell','getprop','ro.build.version.release').decode().strip(),'steps':steps,'sameSignerReinstallVerified':True,'parallelPackageName':'com.guanchao.app','physicalDevice':False,'cloudPushVerified':True,'remoteStreamWakeVerified':True,'standardAndroidProcessKillRecoveryVerified':True,'viewport':[1080,2400],'originOsDeviceTested':False,'appearanceScenarios':['light','dark','large-text']}
  (out/'device-result.json').write_text(json.dumps(result,ensure_ascii=False,indent=2));print(json.dumps(result,ensure_ascii=False))
 finally:
  adb('shell','settings','put','system','font_scale','1.0',check=False);adb('shell','cmd','uimode','night','no',check=False)

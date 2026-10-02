@@ -1,7 +1,7 @@
 name: Native Android verification
 on:
   push:
-    paths: ['app/**', 'tests/**', 'build.py', '.github/workflows/native-verify.yml', 'releases/**', 'scripts/backup-signing.py', 'signing-recovery-public.pem']
+    paths: ['app/**', 'tests/**', 'build.py', '.github/workflows/native-verify.yml', 'releases/**', 'scripts/backup-signing.py', 'signing-recovery-public.pem', 'cloud/**']
   pull_request:
   workflow_dispatch:
 permissions:
@@ -24,6 +24,13 @@ jobs:
         run: |
           mkdir -p evidence/ci
           bash tests/run-domain.sh | tee evidence/ci/domain.txt
+      - name: Cloud feed regressions and current provider receipt
+        run: |
+          python tests/cloud-monitor-test.py
+          mkdir -p out/cloud
+          javac -encoding UTF-8 -d out/cloud app/src/main/java/com/tide/journal/domain/Market.java cloud/CloudAnalysis.java
+          python cloud/monitor.py --state evidence/ci/cloud-source-probe.json
+          python -c "import json; s=json.load(open('evidence/ci/cloud-source-probe.json')); assert s['validCoverage']==6 and len(s['quotes'])==3, s"
       - name: Check public ETF history sources
         run: python scripts/check-etf-source.py
       - uses: android-actions/setup-android@v4

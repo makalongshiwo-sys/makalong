@@ -26,14 +26,14 @@ public final class CandleChart extends View {
  private float left(){return Ui.dp(getContext(),4);}private float right(){return getWidth()-Ui.dp(getContext(),49);}private int end(){return Math.max(0,bars.size()-offset);}private int begin(){return Math.max(0,end()-count);}
  private void line(Canvas c,float x,float y,float x2,float y2,int color,float width){p.setColor(color);p.setStrokeWidth(width);c.drawLine(x,y,x2,y2,p);}
  private void label(Canvas c,String s,float x,float y,int color){p.setColor(color);p.setTextSize(Math.min(Ui.sp(getContext(),10),Ui.dp(getContext(),12)));c.drawText(s,x,y,p);}
- @Override protected void onDraw(Canvas c){super.onDraw(c);float w=right()-left(),h=getHeight(),top=Ui.dp(getContext(),24),bottom=h*.47f;
+ @Override protected void onDraw(Canvas c){super.onDraw(c);float w=right()-left(),h=getHeight(),top=Ui.dp(getContext(),24),bottom=h*.44f;
   if(bars.isEmpty()){label(c,"等待来源 K 线，未使用演示价格",left(),h/2,Ui.MUTED);return;}
   int begin=begin(),end=end(),n=end-begin;if(n<=0)return;float step=w/n;double low=Double.POSITIVE_INFINITY,high=0,vol=1,mac=.000001;
   for(int i=begin;i<end;i++){Market.Bar b=bars.get(i);Market.Point q=points.get(i);low=Math.min(low,b.low);high=Math.max(high,b.high);vol=Math.max(vol,b.volume);if(bb&&Double.isFinite(q.lower)){low=Math.min(low,q.lower);high=Math.max(high,q.upper);}if(Double.isFinite(q.hist))mac=Math.max(mac,Math.max(Math.abs(q.hist),Math.max(Math.abs(q.dif),Math.abs(q.dea))));}
   double pad=Math.max((high-low)*.08,high*.0001);low-=pad;high+=pad;final double lo=low,hi=high;
   for(int k=0;k<5;k++){float y=top+(bottom-top)*k/4;line(c,left(),y,right(),y,Ui.LINE,1);label(c,String.format(Locale.US,"%.1f",high-(high-low)*k/4),right()+3,y+3,Ui.MUTED);}
-  label(c,"价格 · USDT",left(),Ui.dp(getContext(),16),Ui.MUTED);label(c,"VOL",left(),h*.52f,Ui.MUTED);label(c,"MACD 12 · 26 · 9",left(),h*.66f,Ui.MUTED);label(c,"RSI 14",left(),h*.84f,Ui.MUTED);
-  float vtop=h*.54f,vbottom=h*.62f,mtop=h*.68f,mbottom=h*.80f,mzero=(mtop+mbottom)/2,rtop=h*.86f,rbottom=h-Ui.dp(getContext(),24);
+  label(c,"价格 · USDT",left(),Ui.dp(getContext(),16),Ui.MUTED);label(c,"VOL",left(),h*.49f,Ui.MUTED);label(c,"MACD 12 · 26 · 9",left(),h*.63f,Ui.MUTED);label(c,"RSI 14",left(),h*.78f,Ui.MUTED);
+  float vtop=h*.51f,vbottom=h*.59f,mtop=h*.65f,mbottom=h*.73f,mzero=(mtop+mbottom)/2,rtop=h*.80f,rbottom=h-Ui.dp(getContext(),20);
   line(c,left(),mzero,right(),mzero,Ui.LINE,1);for(int level:new int[]{30,70}){float y=rbottom-(rbottom-rtop)*level/100;line(c,left(),y,right(),y,Ui.LINE,1);label(c,""+level,right()+3,y+3,Ui.MUTED);}
   mid.reset();upper.reset();lower.reset();dif.reset();dea.reset();rsi.reset();boolean pb=false,pm=false,pr=false;
   for(int i=begin;i<end;i++){Market.Bar b=bars.get(i);Market.Point q=points.get(i);float x=left()+(i-begin+.5f)*step;int color=b.close>=b.open?Ui.GREEN:Ui.RED;

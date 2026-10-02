@@ -29,9 +29,8 @@ jobs:
           javac -encoding UTF-8 -d "$RUNNER_TEMP/guanchao-public-monitor/out/cloud" app/src/main/java/com/tide/journal/domain/Market.java cloud/CloudAnalysis.java
           cp cloud/monitor.py "$RUNNER_TEMP/guanchao-public-monitor/monitor.py"
           mkdir -p "$RUNNER_TEMP/guanchao-public-monitor/signals"
-          if git fetch origin guanchao-live-signals; then
-            git show FETCH_HEAD:signals/state.json > "$RUNNER_TEMP/guanchao-public-monitor/signals/state.json"
-          fi
+          git fetch origin guanchao-live-signals
+          git show FETCH_HEAD:signals/state.json > "$RUNNER_TEMP/guanchao-public-monitor/signals/state.json"
       - name: Monitor public source in a finite batch and preserve feed independently of reports
         working-directory: ${{ runner.temp }}/guanchao-public-monitor
         env:
@@ -40,13 +39,8 @@ jobs:
           for round in {1..10}; do
             result=$(python monitor.py)
             echo "$result"
-            if git -C "$GITHUB_WORKSPACE" fetch origin guanchao-live-signals; then
-              git -C "$GITHUB_WORKSPACE" checkout -B live-state FETCH_HEAD
-            else
-              git -C "$GITHUB_WORKSPACE" checkout --orphan live-state
-              git -C "$GITHUB_WORKSPACE" rm -rf --cached .
-              git -C "$GITHUB_WORKSPACE" clean -fd
-            fi
+            git -C "$GITHUB_WORKSPACE" fetch origin guanchao-live-signals
+            git -C "$GITHUB_WORKSPACE" checkout -B live-state FETCH_HEAD
             mkdir -p "$GITHUB_WORKSPACE/signals"
             cp signals/state.json "$GITHUB_WORKSPACE/signals/state.json"
             git -C "$GITHUB_WORKSPACE" add signals/state.json

@@ -27,10 +27,10 @@ public final class SignalChecks {
   }catch(Exception e){issue=e.getMessage()==null?"研究来源不可用":e.getMessage();}
   if(enabled.getAsBoolean()){SharedPreferences.Editor edit=p.edit().putString("lastResult","行情有效覆盖 "+valid+"/6"+(issue.isEmpty()?"":" · "+issue));if(valid==6)edit.putLong("lastSuccess",System.currentTimeMillis());edit.apply();}
  }
- public static void deliver(Context c,BooleanSupplier enabled,String id,String title,String body,long at,String type){
+ public static boolean deliver(Context c,BooleanSupplier enabled,String id,String title,String body,long at,String type){
   long now=System.currentTimeMillis();SharedPreferences p=AlertJob.prefs(c);
-  if(!enabled.getAsBoolean()||!p.getBoolean("alerts",false)||!p.getBoolean("type_"+type,!type.equals("close"))||at<p.getLong("enabledAt",now)||at>now||now-at>86400000)return;
+  if(!enabled.getAsBoolean()||!p.getBoolean("alerts",false)||!p.getBoolean("type_"+type,true)||at<p.getLong("enabledAt",now)||at>now||now-at>86400000)return false;
   Store store=Repository.get(c).store;
-  synchronized(store){store.add(id,title,body,at);if(enabled.getAsBoolean()&&p.getBoolean("alerts",false)&&!store.sent(id)&&AlertJob.allowed(c)){AlertJob.notification(c,id,title,body);store.mark(id);}}
+  synchronized(store){store.add(id,title,body,at);if(enabled.getAsBoolean()&&p.getBoolean("alerts",false)&&!store.sent(id)&&AlertJob.allowed(c)){AlertJob.notification(c,id,title,body);store.mark(id);}return true;}
  }
 }

@@ -7,13 +7,14 @@ import android.os.*;
 import com.tide.journal.MainActivity;
 import com.tide.journal.R;
 import com.tide.journal.data.*;
+import com.tide.journal.domain.PriceWindow;
 import java.util.*;
 import java.util.concurrent.*;
 
 /** Explicit, visible data-sync session. Android 15+ also enforces its daily six-hour limit. */
 public final class WatchService extends Service {
  private final ExecutorService executor=Executors.newSingleThreadExecutor();private final Handler main=new Handler(Looper.getMainLooper());
- private final Map<String,ArrayDeque<Repository.Quote>> history=new HashMap<>();private final Map<String,Long> lastMove=new HashMap<>();
+ private final Map<String,PriceWindow> history=new HashMap<>();
  private Future<?> request;private volatile boolean running;private long started,checkedAt;
  private boolean enabled(){return running&&!Thread.currentThread().isInterrupted()&&AlertJob.prefs(this).getBoolean("alerts",false);}
  public static void start(Context c){c.startForegroundService(new Intent(c,WatchService.class));}
@@ -37,23 +38,18 @@ public final class WatchService extends Service {
   request=HttpRequests.submit(executor,()->{
    try{int valid=0;StringBuilder prices=new StringBuilder();String error="";Repository repo=Repository.get(this);
    for(String coin:new String[]{"BTC","ETH","SOL"}){if(!enabled())return;try{Repository.Quote q=repo.quote(coin);valid++;prices.append(prices.length()==0?"":" · ").append(coin).append(" ").append(String.format(Locale.US,q.price>=1000?"%,.0f":"%.2f",q.price));volatility(coin,q);}catch(Exception e){if(!enabled())return;error="行情连接暂不可用，暂停新信号";}}
-   if(enabled()){String state=valid==3?prices.toString():error;AlertJob.prefs(this).edit().putLong("watchAttempt",System.currentTimeMillis()).putString("watchResult",state).apply();if(valid==3)AlertJob.prefs(this).edit().putLong("watchResponse",System.currentTimeMillis()).apply();getSystemService(NotificationManager.class).notify(900,notice(state));}
+   final int coverage=valid;final String state=valid==3?prices.toString():error;
+   main.post(()->{if(!enabled())return;AlertJob.prefs(this).edit().putLong("watchAttempt",System.currentTimeMillis()).putString("watchResult",state).apply();if(coverage==3)AlertJob.prefs(this).edit().putLong("watchResponse",System.currentTimeMillis()).apply();getSystemService(NotificationManager.class).notify(900,notice(state));});
    if(enabled()&&SystemClock.elapsedRealtime()-checkedAt>=60000){checkedAt=SystemClock.elapsedRealtime();SignalChecks.check(this,this::enabled);}
    }catch(Exception e){if(enabled())AlertJob.prefs(this).edit().putString("watchResult","检查暂未完成，请查看网络与后台设置").apply();}
    finally{main.postDelayed(()->{if(running)poll();},15000);}
   });
  }
  private void volatility(String coin,Repository.Quote q){
-  ArrayDeque<Repository.Quote> samples=history.computeIfAbsent(coin,k->new ArrayDeque<>());
-  if(!samples.isEmpty()&&q.asOf<=samples.peekLast().asOf)return;
-  while(!samples.isEmpty()&&q.asOf-samples.peekFirst().asOf>300000)samples.removeFirst();
-  if(!samples.isEmpty()){
-   Repository.Quote base=samples.peekFirst();double change=(q.price/base.price-1)*100;double threshold=AlertJob.prefs(this).getFloat("volatilityPct",1f);
-   if(q.asOf-base.asOf>=15000&&Math.abs(change)>=threshold&&q.asOf-lastMove.getOrDefault(coin,0L)>=300000){
-    SignalChecks.deliver(this,this::enabled,"volatility:"+coin+":"+q.asOf,coin+" 短时波动 "+String.format(Locale.US,"%+.2f%%",change),"最近 "+Math.max(1,(q.asOf-base.asOf)/1000)+" 秒，由 "+String.format(Locale.US,"%,.2f",base.price)+" 到 "+String.format(Locale.US,"%,.2f",q.price)+" USDT。来自新鲜报价；不是买卖建议。",q.asOf,"volatility");lastMove.put(coin,q.asOf);
-   }
-  }
-  samples.addLast(q);
+  android.content.SharedPreferences prefs=AlertJob.prefs(this);String key="lastVolatility-"+coin;
+  PriceWindow window=history.computeIfAbsent(coin,k->new PriceWindow(prefs.getLong(key,0)));
+  PriceWindow.Move move=window.observe(q.price,q.asOf,System.currentTimeMillis(),prefs.getFloat("volatilityPct",1f));
+  if(move!=null&&SignalChecks.deliver(this,this::enabled,"volatility:"+coin+":"+move.at,coin+" 短时波动 "+String.format(Locale.US,"%+.2f%%",move.percent),"最近 "+move.seconds+" 秒，由 "+String.format(Locale.US,"%,.2f",move.before)+" 到 "+String.format(Locale.US,"%,.2f",move.price)+" USDT。来自新鲜报价；不是买卖建议。",move.at,"volatility")){window.markAlert(move.at);prefs.edit().putLong(key,move.at).apply();}
  }
  @Override public void onTimeout(int startId,int fgsType){AlertJob.prefs(this).edit().putString("watchResult","本次盯盘已到系统时长限制，请回到应用重新开启").apply();stopSelf();}
  @Override public void onDestroy(){running=false;main.removeCallbacksAndMessages(null);if(request!=null)request.cancel(true);executor.shutdownNow();AlertJob.prefs(this).edit().putBoolean("watchRunning",false).apply();stopForeground(STOP_FOREGROUND_REMOVE);super.onDestroy();}

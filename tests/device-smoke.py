@@ -30,7 +30,11 @@ try:
  assert not any(n.get('class')=='android.widget.SeekBar' for n in tree().iter('node')),'Toy slider still present'
  click('ETF');time.sleep(3);capture('05-etf-history')
  click('研报');time.sleep(6);capture('09-reports');click('打开这一期',partial=True,scrolls=3);capture('10-report-detail')
- click('提醒');capture('11-alerts');adb('shell','pm','grant','com.guanchao.app','android.permission.POST_NOTIFICATIONS');click('发送本机测试通知',scrolls=4);time.sleep(1)
+ click('提醒');capture('11-alerts');adb('shell','pm','grant','com.guanchao.app','android.permission.POST_NOTIFICATIONS')
+ click('开启实时盯盘',scrolls=2);time.sleep(2);adb('shell','input','keyevent','3');time.sleep(3)
+ watch=adb('shell','dumpsys','notification','--noredact').decode(errors='replace');(out/'watch-notifications.txt').write_text(watch);assert '实时盯盘' in watch,'No foreground watch notification'
+ services=adb('shell','dumpsys','activity','services','com.guanchao.app').decode(errors='replace');(out/'watch-services.txt').write_text(services);assert 'WatchService' in services and 'isForeground=true' in services,'Live watch not foreground after Home'
+ adb('shell','am','start','-W','-n','com.guanchao.app/com.tide.journal.MainActivity');time.sleep(1);click('停止实时盯盘',scrolls=2);click('发送本机测试通知',scrolls=4);time.sleep(1)
  notice=adb('shell','dumpsys','notification','--noredact').decode(errors='replace');(out/'notifications.txt').write_text(notice);assert '观潮测试通知' in notice,'No submitted Android notification'
  adb('shell','input','keyevent','3');time.sleep(.5);adb('shell','am','start','-W','-n','com.guanchao.app/com.tide.journal.MainActivity');time.sleep(1);capture('12-resumed')
  # Repeat same-signer installation without deleting preferences or inbox.

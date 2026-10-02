@@ -60,7 +60,7 @@
   "standardAndroidProcessKillRecoveryVerified": true,
   "cloudSourceCoverage": "6/6",
   "cloudProducerCommit": "7ea7a67d1287b7f4baa295a3dd37a8328aee023e",
-  "cloudDeploymentCommit": "2d598f0d06a9005d776c3388dcf13d342ba4f376",
+  "cloudDeploymentCommit": "7089bfa104b3d441862b56a7d9988db767e38c6a",
   "vivoOnePlusDeviceTested": false,
   "domesticWithoutVpnTested": false,
   "standardAndroidRecentTaskRemovalVerified": true,
@@ -86,5 +86,7 @@
     "betweenChecksSeconds": 60,
     "jobStatusAtObservation": "in_progress",
     "cronTriggeredRunObserved": false
-  }
+  },
+  "cloudHistoryFetchFailureAbortVerified": true,
+  "continuousCloudScheduleGuaranteed": false
 }

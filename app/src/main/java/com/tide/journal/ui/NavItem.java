@@ -12,7 +12,7 @@ public final class NavItem extends LinearLayout {
  public NavItem(Context c,int tab,String title,boolean selected,Runnable click){
   super(c);setOrientation(VERTICAL);setGravity(Gravity.CENTER);setMinimumHeight(Ui.dp(c,64));
   setPadding(Ui.dp(c,2),Ui.dp(c,6),Ui.dp(c,2),Ui.dp(c,6));
-  setBackground(new RippleDrawable(ColorStateList.valueOf(Ui.isDark()?0x339bbcff:0x22235ed5),Ui.shape(selected?Ui.TINT:Ui.SURFACE,16,c),null));
+  setBackground(new RippleDrawable(ColorStateList.valueOf(Ui.isDark()?0x3381dfce:0x22086859),Ui.shape(selected?Ui.TINT:Ui.SURFACE,16,c),null));
   addView(new Icon(c,tab,selected?Ui.BLUE:Ui.MUTED),new LayoutParams(Ui.dp(c,24),Ui.dp(c,24)));
   Ui.gap(this,6);TextView label=Ui.text(c,title,12,selected?Ui.BLUE:Ui.MUTED);
   label.setGravity(Gravity.CENTER);label.setSingleLine(true);label.setTypeface(Typeface.create(selected?"sans-serif-medium":"sans-serif",Typeface.NORMAL));addView(label);

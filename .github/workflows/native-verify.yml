@@ -1,7 +1,7 @@
 name: Native Android verification
 on:
   push:
-    paths: ['app/**', 'tests/**', 'build.py', '.github/workflows/native-verify.yml', 'releases/**']
+    paths: ['app/**', 'tests/**', 'build.py', '.github/workflows/native-verify.yml', 'releases/**', 'scripts/backup-signing.py', 'signing-recovery-public.pem']
   pull_request:
   workflow_dispatch:
 permissions:
@@ -32,11 +32,12 @@ jobs:
           log-accepted-android-sdk-licenses: false
       - name: Install verification tools
         run: sdkmanager "build-tools;36.0.0"
-      - name: Compile current source with an isolated CI verification key
+      - name: Compile current source and encrypt its signing key for private recovery
         run: |
           sdkmanager "platforms;android-36"
-          keytool -genkeypair -keystore "$RUNNER_TEMP/verification.jks" -alias androiddebugkey -storepass android -keypass android -dname "CN=Guanchao CI Verification" -keyalg RSA -validity 10000
+          keytool -genkeypair -keystore "$RUNNER_TEMP/verification.jks" -alias androiddebugkey -storepass android -keypass android -dname "CN=Guanchao Native 0.9" -keyalg RSA -validity 10000
           python -m pip install --quiet Pillow
+          python scripts/backup-signing.py "$RUNNER_TEMP/verification.jks"
           python build.py "$ANDROID_HOME" --key "$RUNNER_TEMP/verification.jks"
           python tests/build-instrumentation.py "$ANDROID_HOME" "$RUNNER_TEMP/verification.jks"
       - name: Verify current verification APK identity
@@ -51,8 +52,8 @@ jobs:
       - name: Exercise the current-source verification APK
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 35
-          target: default
+          api-level: 36
+          target: google_apis
           arch: x86_64
           profile: pixel_2
           disable-animations: true

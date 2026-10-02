@@ -1,6 +1,7 @@
 package com.tide.journal.test;
 import android.app.*;import android.os.*;import android.content.*;import android.graphics.Bitmap;import android.widget.*;
 import com.tide.journal.MainActivity;import com.tide.journal.domain.*;import com.tide.journal.ui.*;import com.tide.journal.data.*;
+import com.tide.journal.sync.*;
 import java.lang.reflect.*;import java.util.*;import java.io.*;
 
 /** Separate signed instrumentation; fixtures never enter the production APK. */
@@ -78,12 +79,43 @@ public final class NativeCheck extends Instrumentation {
   long boundary=Market.boundary("1h",System.currentTimeMillis());org.json.JSONArray candle=new org.json.JSONArray().put(boundary-3600000).put(100).put(101).put(99).put(100).put(10).put(boundary-1);
   check(!Repository.parseBars(new org.json.JSONArray().put(candle),"1h",boundary-100).get(0).closed,"request before close retains candidate status after delayed response");
  }
+ private void offlineAndSignals()throws Exception{
+  Repository repo=Repository.get(activity);
+  check(repo.store.notices().stream().anyMatch(x->x[1].equals("观潮测试通知")),"same-signer reinstall preserves previously created inbox data");
+  for(String coin:new String[]{"BTC","ETH","SOL"}){
+   Repository.Quote q=repo.localQuote(coin);check(q.cached&&q.price>0&&q.asOf>0,"offline quote is explicitly historical "+coin);
+   for(String period:Market.PERIODS){Repository.Bars b=repo.localBars(coin,period);check(b.cached&&!b.analysis.valid()&&b.analysis.events.isEmpty()&&b.bars.size()>=55,"offline bars usable but never notify "+coin+period);}
+  }
+  android.content.SharedPreferences prefs=AlertJob.prefs(activity);java.util.Map<String,?> original=prefs.getAll();long at=System.currentTimeMillis();String id="signal-test:"+at;
+  try{
+   prefs.edit().putBoolean("alerts",true).putBoolean("type_close",true).putLong("enabledAt",at-1000).commit();AlertJob.channel(activity);
+   check(activity.getSystemService(NotificationManager.class).getNotificationChannel("market-alerts").getImportance()==NotificationManager.IMPORTANCE_HIGH,"heads-up alert channel high importance");
+   SignalChecks.deliver(activity,()->true,id,"TEST FIXTURE · closed candle","Notification pipeline fixture, not a real market event",at,"close");
+   SignalChecks.deliver(activity,()->true,id,"TEST FIXTURE · closed candle","Notification pipeline fixture, not a real market event",at,"close");
+   check(repo.store.sent(id),"eligible closed signal submitted and marked");
+   check(repo.store.notices().stream().filter(x->x[0].equals(id)).count()==1,"repeat signal produces one inbox item");
+   prefs.edit().putBoolean("type_close",false).commit();SignalChecks.deliver(activity,()->true,id+"-off","test","test",at,"close");check(!repo.store.sent(id+"-off"),"disabled category does not notify");
+   SignalChecks.deliver(activity,()->true,id+"-old","test","test",at-2000,"move");check(!repo.store.sent(id+"-old"),"pre-enable events not replayed");
+   SignalChecks.deliver(activity,()->false,id+"-cancel","test","test",at,"move");check(!repo.store.sent(id+"-cancel"),"cancelled check cannot deliver");
+   prefs.edit().putBoolean("type_close",true).commit();ui(()->WatchService.start(activity));SystemClock.sleep(1800);
+   check(prefs.getBoolean("watchRunning",false),"Android foreground watch starts from visible Activity");
+   boolean ongoing=false;for(android.service.notification.StatusBarNotification n:activity.getSystemService(NotificationManager.class).getActiveNotifications())if(n.getId()==900)ongoing=(n.getNotification().flags&Notification.FLAG_ONGOING_EVENT)!=0;
+   check(ongoing,"watch has visible ongoing Android notification");
+   ui(()->activity.moveTaskToBack(true));SystemClock.sleep(1200);check(prefs.getBoolean("watchRunning",false),"watch survives Activity entering background");
+   SignalChecks.deliver(activity,()->true,id+"-background","TEST FIXTURE · background notification","Background delivery fixture, not a real market signal",System.currentTimeMillis(),"close");check(repo.store.sent(id+"-background"),"notification pipeline delivers while Activity is backgrounded");
+   ui(()->WatchService.stop(activity));SystemClock.sleep(700);check(!prefs.getBoolean("watchRunning",true),"user stop cancels live watch");
+   ui(()->activity.startActivity(new Intent(activity,MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)));SystemClock.sleep(600);
+  }finally{
+   WatchService.stop(activity);android.content.SharedPreferences.Editor edit=prefs.edit().clear();for(java.util.Map.Entry<String,?> entry:original.entrySet()){Object v=entry.getValue();String k=entry.getKey();if(v instanceof Boolean)edit.putBoolean(k,(Boolean)v);else if(v instanceof Long)edit.putLong(k,(Long)v);else if(v instanceof Integer)edit.putInt(k,(Integer)v);else if(v instanceof Float)edit.putFloat(k,(Float)v);else if(v instanceof String)edit.putString(k,(String)v);}edit.commit();
+   repo.store.getWritableDatabase().delete("inbox","id LIKE ?",new String[]{id+"%"});for(String suffix:new String[]{"","-background"})activity.getSystemService(NotificationManager.class).cancel(id+suffix,0);
+  }
+ }
  private void shot(String name)throws Exception{SystemClock.sleep(700);Bitmap b=getUiAutomation().takeScreenshot();check(b!=null,"screenshot available");try(FileOutputStream f=new FileOutputStream(new File(out,name+"-"+scenario+".png"))){b.compress(Bitmap.CompressFormat.PNG,100,f);}b.recycle();}
  public void onStart(){Bundle result=new Bundle();try{out=new File(getTargetContext().getExternalFilesDir(null),"verification");out.mkdirs();activity=(MainActivity)startActivitySync(new Intent(getTargetContext(),MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));waitForIdleSync();
   ui(()->{set("tab",0);invoke("render");set("generation",((Integer)get("generation"))+1);set("active",false);((Handler)get("main")).removeCallbacksAndMessages(null);
    List<Market.Bar>bars=new ArrayList<>();long size=Market.duration("4h"),base=Market.boundary("4h",System.currentTimeMillis())-90*size;for(int i=0;i<90;i++){double close=100+Math.sin(i*.4)*3+i*.05;bars.add(new Market.Bar(base+i*size,base+(i+1)*size-1,close-.4,close+1,close-1,close,100+i,true));}
    CandleChart c=(CandleChart)get("chart");c.data(bars,Market.indicators(bars));((TextView)get("quote")).setText("示例 · 100.42");((TextView)get("quoteMeta")).setText("示例数据 · 非真实行情");check(((TextView)get("reading")).getText().toString().contains("RSI14"),"native chart callback");c.zoom(.75f);
-  });shot("instrumented-chart-fixture");ui(()->{checkNav();chartGestures();});dataGuards();
+  });shot("instrumented-chart-fixture");ui(()->{checkNav();chartGestures();});dataGuards();offlineAndSignals();
 
   for(String id:Lessons.IDS){final String current=id;ui(()->{
    set("tab",2);set("lessonId",current);invoke("render");

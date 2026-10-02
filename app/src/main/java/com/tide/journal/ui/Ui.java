@@ -14,17 +14,17 @@ public final class Ui {
  static {palette(false);}
  private static void palette(boolean night){
   dark=night;
-  BG=night?0xff10141c:0xfff5f7fb;
-  SURFACE=night?0xff191f2a:Color.WHITE;
-  SURFACE2=night?0xff232c3a:0xffeef2f7;
-  INK=night?0xfff0f3fa:0xff172032;
-  MUTED=night?0xffa9b3c4:0xff647084;
-  LINE=night?0xff303947:0xffe5eaf1;
-  BLUE=night?0xff9bbcff:0xff235ed5;
-  TINT=night?0xff293850:0xffedf3ff;
+  BG=night?0xff101f23:0xfff3f6f4;
+  SURFACE=night?0xff182b30:Color.WHITE;
+  SURFACE2=night?0xff21383d:0xffedf2ef;
+  INK=night?0xffedf6f3:0xff17312f;
+  MUTED=night?0xffa6beb9:0xff5c726d;
+  LINE=night?0xff2c454a:0xffdfe8e2;
+  BLUE=night?0xff81dfce:0xff086859;
+  TINT=night?0xff234a47:0xffe2f1ea;
   GREEN=night?0xff6cdaa7:0xff16704a;
   RED=night?0xffff929c:0xffc43d4a;
-  ON_ACCENT=night?0xff111a2b:Color.WHITE;
+  ON_ACCENT=night?0xff102522:Color.WHITE;
  }
  public static void configure(Context c){palette((c.getResources().getConfiguration().uiMode&Configuration.UI_MODE_NIGHT_MASK)==Configuration.UI_MODE_NIGHT_YES);}
  public static boolean isDark(){return dark;}
@@ -47,15 +47,15 @@ public final class Ui {
  }
  public static void selectButton(TextView t,boolean selected){
   t.setSelected(selected);t.setTextColor(selected?BLUE:INK);
-  t.setBackground(new RippleDrawable(ColorStateList.valueOf(isDark()?0x339bbcff:0x22235ed5),shape(selected?TINT:SURFACE2,12,t.getContext()),null));
+  t.setBackground(new RippleDrawable(ColorStateList.valueOf(isDark()?0x3381dfce:0x22086859),shape(selected?TINT:SURFACE2,12,t.getContext()),null));
  }
  public static TextView primary(Context c,String s,Runnable click){
   TextView t=button(c,s,false,click);t.setTextColor(ON_ACCENT);
   t.setBackground(new RippleDrawable(ColorStateList.valueOf(0x33000000),shape(BLUE,12,c),null));return t;
  }
  public static LinearLayout card(Context c){
-  LinearLayout l=column(c);l.setPadding(dp(c,18),dp(c,20),dp(c,18),dp(c,20));
-  GradientDrawable background=shape(SURFACE,20,c);background.setStroke(dp(c,1),LINE);l.setBackground(background);
+  LinearLayout l=column(c);l.setPadding(dp(c,18),dp(c,18),dp(c,18),dp(c,18));
+  GradientDrawable background=shape(SURFACE,24,c);background.setStroke(dp(c,1),LINE);l.setBackground(background);
   LinearLayout.LayoutParams params=new LinearLayout.LayoutParams(-1,-2);params.bottomMargin=dp(c,16);l.setLayoutParams(params);return l;
  }
  public static void gap(LinearLayout l,int height){l.addView(new Space(l.getContext()),new LinearLayout.LayoutParams(1,dp(l.getContext(),height)));}

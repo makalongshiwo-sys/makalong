@@ -1,0 +1,12 @@
+{
+  "status": "passed",
+  "oldPid": "5823",
+  "newPid": "5978",
+  "processKillAt": 1790942884489,
+  "wakeSentAt": 1790942947793,
+  "wakeReceivedAt": 1790942948082,
+  "freshFeedReadAt": 1790942948090,
+  "googlePushUsed": false,
+  "physicalDevice": false,
+  "forceStopRecoveryVerified": false
+}

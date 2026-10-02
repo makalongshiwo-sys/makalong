@@ -1,5 +1,8 @@
 # 观潮 · 原生 Android
 
+[下载观潮 0.9 APK](https://raw.githubusercontent.com/makalongshiwo-sys/makalong/codex/guanchao-0.9-android16/releases/guanchao-0.9.apk) · [远程提醒设置](docs/PUSH-SETUP.md) · [当前源码回执](releases/guanchao-0.9-receipt.json)
+
+
 BTC / ETH / SOL 行情与研究应用。Android 原生 Views 和 Canvas 渲染，无 WebView、网页或 JavaScript 运行时。
 
 ## 0.9 原生应用

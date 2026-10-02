@@ -60,7 +60,7 @@
   "standardAndroidProcessKillRecoveryVerified": true,
   "cloudSourceCoverage": "6/6",
   "cloudProducerCommit": "7ea7a67d1287b7f4baa295a3dd37a8328aee023e",
-  "cloudDeploymentCommit": "499ac30ab70f0ca51aec2ceefc44e3c103a51c12",
+  "cloudDeploymentCommit": "2d598f0d06a9005d776c3388dcf13d342ba4f376",
   "vivoOnePlusDeviceTested": false,
   "domesticWithoutVpnTested": false,
   "standardAndroidRecentTaskRemovalVerified": true,
@@ -69,5 +69,22 @@
     "dark": 119,
     "large-text": 119
   },
-  "verificationScope": "Native Android16 installation, foreground and notification fixtures, recent task removal, actual ntfy wake and trusted feed fetch, emulator OS process kill recovery. New real market notification and physical OEM cleanup not yet verified."
+  "verificationScope": "Native Android16 installation, foreground and notification fixtures, recent task removal, actual ntfy wake and trusted feed fetch, emulator OS process kill recovery. New real market notification and physical OEM cleanup not yet verified.",
+  "cloudInitialDeploymentCommit": "499ac30ab70f0ca51aec2ceefc44e3c103a51c12",
+  "continuousCloudSourceRefreshVerified": true,
+  "cloudBatchResult": {
+    "deploymentCommit": "2d598f0d06a9005d776c3388dcf13d342ba4f376",
+    "runId": 37006430782,
+    "firstGeneratedAt": 1790943858106,
+    "secondGeneratedAt": 1790943935658,
+    "continuousSourceRefreshVerified": true,
+    "validCoverage": 6,
+    "failures": [],
+    "roundLimit": 10,
+    "timeoutMinutes": 15,
+    "scheduleMinutes": 5,
+    "betweenChecksSeconds": 60,
+    "jobStatusAtObservation": "in_progress",
+    "cronTriggeredRunObserved": false
+  }
 }

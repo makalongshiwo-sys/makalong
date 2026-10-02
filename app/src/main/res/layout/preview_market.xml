@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools"
+ android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" tools:showIn="@layout/screen_shell">
+ <TextView android:layout_width="match_parent" android:layout_height="wrap_content" tools:text="行情" android:textColor="@color/ui_ink" android:textSize="30sp" android:textStyle="bold"/>
+ <TextView android:layout_width="match_parent" android:layout_height="wrap_content" tools:text="价格、趋势和风险，放在一起看。"
+  android:textColor="@color/ui_muted" android:textSize="14sp" android:layout_marginTop="8dp" android:layout_marginBottom="22dp"/>
+ <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:background="@drawable/card_surface" android:padding="20dp">
+  <TextView android:layout_width="match_parent" android:layout_height="wrap_content" tools:text="BTC / USDT" android:textSize="19sp" android:textColor="@color/ui_ink"/>
+  <TextView android:layout_width="match_parent" android:layout_height="wrap_content" tools:text="预览示例" android:textSize="42sp" android:textColor="@color/ui_ink" android:textStyle="bold"/>
+  <TextView android:layout_width="match_parent" android:layout_height="wrap_content" tools:text="布局预览不包含真实行情" android:textSize="12sp" android:textColor="@color/ui_muted"/>
+  <View android:layout_width="match_parent" android:layout_height="240dp" android:background="@color/ui_bg" android:layout_marginTop="18dp"/>
+  <TextView android:layout_width="match_parent" android:layout_height="wrap_content" tools:text="1 小时 · 4 小时 · 日线 · 周线" android:textSize="14sp" android:paddingTop="16dp" android:textColor="@color/ui_accent"/>
+ </LinearLayout>
+</LinearLayout>

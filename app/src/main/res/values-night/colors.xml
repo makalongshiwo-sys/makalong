@@ -1,0 +1,5 @@
+<resources>
+ <color name="ui_bg">#10141C</color><color name="ui_surface">#191F2A</color>
+ <color name="ui_ink">#F0F3FA</color><color name="ui_muted">#A9B3C4</color>
+ <color name="ui_line">#303947</color><color name="ui_accent">#9BBCFF</color>
+</resources>

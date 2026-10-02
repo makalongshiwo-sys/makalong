@@ -118,6 +118,21 @@ public final class NativeCheck extends Instrumentation {
    repo.store.getWritableDatabase().delete("inbox","id LIKE ?",new String[]{id+"%"});for(String suffix:new String[]{"","-background"})activity.getSystemService(NotificationManager.class).cancel(id+suffix,0);
   }
  }
+ private void recentTaskRemoval()throws Exception{
+  android.content.SharedPreferences prefs=AlertJob.prefs(activity);java.util.Map<String,?> original=prefs.getAll();
+  try{
+   prefs.edit().putBoolean("alerts",true).putLong("enabledAt",System.currentTimeMillis()).commit();ui(()->WatchService.start(activity));SystemClock.sleep(1000);
+   check(prefs.getBoolean("watchRunning",false),"watch enabled before recent task removal");
+   ui(()->activity.finishAndRemoveTask());SystemClock.sleep(1800);
+   check(activity.isDestroyed(),"Activity destroyed and its recent task removed");check(prefs.getBoolean("watchRunning",false),"standard Android recent task removal preserves explicit watch");
+   boolean ongoing=false;for(android.service.notification.StatusBarNotification n:getTargetContext().getSystemService(NotificationManager.class).getActiveNotifications())if(n.getId()==900)ongoing=true;check(ongoing,"ongoing notification remains after removal from recents");
+   long at=System.currentTimeMillis();String id="recent-removal-test:"+at;check(SignalChecks.deliver(getTargetContext(),()->true,id,"TEST FIXTURE · recent task removed","Notification test after task removal, not a real market event",at,"close"),"notification accepted after Activity and recent task are gone");check(Repository.get(getTargetContext()).store.sent(id),"notification delivered after recent task removal");
+   Repository.get(getTargetContext()).store.getWritableDatabase().delete("inbox","id=?",new String[]{id});getTargetContext().getSystemService(NotificationManager.class).cancel(id,0);
+  }finally{
+   WatchService.stop(getTargetContext());SystemClock.sleep(500);android.content.SharedPreferences.Editor edit=prefs.edit().clear();for(java.util.Map.Entry<String,?> entry:original.entrySet()){Object v=entry.getValue();String k=entry.getKey();if(v instanceof Boolean)edit.putBoolean(k,(Boolean)v);else if(v instanceof Long)edit.putLong(k,(Long)v);else if(v instanceof Integer)edit.putInt(k,(Integer)v);else if(v instanceof Float)edit.putFloat(k,(Float)v);else if(v instanceof String)edit.putString(k,(String)v);}edit.commit();
+   activity=(MainActivity)startActivitySync(new Intent(getTargetContext(),MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));waitForIdleSync();
+  }
+ }
  private void shot(String name)throws Exception{SystemClock.sleep(700);Bitmap b=getUiAutomation().takeScreenshot();check(b!=null,"screenshot available");try(FileOutputStream f=new FileOutputStream(new File(out,name+"-"+scenario+".png"))){b.compress(Bitmap.CompressFormat.PNG,100,f);}b.recycle();}
  public void onStart(){Bundle result=new Bundle();try{out=new File(getTargetContext().getExternalFilesDir(null),"verification");out.mkdirs();activity=(MainActivity)startActivitySync(new Intent(getTargetContext(),MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));waitForIdleSync();
   ui(()->{set("tab",0);invoke("render");set("generation",((Integer)get("generation"))+1);set("active",false);((Handler)get("main")).removeCallbacksAndMessages(null);
@@ -149,6 +164,7 @@ public final class NativeCheck extends Instrumentation {
    check(containsText((android.view.View)get("body"),"即时提醒仍需接通厂商推送"),"push status not overstated");
   });
     ui(()->{Store s=Repository.get(activity).store;s.add("device-test-dedupe","test","test",1);s.add("device-test-dedupe","test","test",1);long count=s.notices().stream().filter(x->x[0].equals("device-test-dedupe")).count();check(count==1,"SQLite duplicate suppression");s.mark("device-test-dedupe");check(s.sent("device-test-dedupe"),"SQLite delivery persistence");s.getWritableDatabase().delete("inbox","id=?",new String[]{"device-test-dedupe"});});
+  recentTaskRemoval();
   String receipt="{\"status\":\"passed\",\"checks\":"+checks+",\"fixtureScreenshotsLabeled\":true,\"physicalDevice\":false}";try(FileOutputStream f=new FileOutputStream(new File(out,"instrumentation.json"))){f.write(receipt.getBytes("UTF-8"));}result.putString("stream",receipt);finish(Activity.RESULT_OK,result);
  }catch(Throwable e){result.putString("stream",android.util.Log.getStackTraceString(e));finish(Activity.RESULT_CANCELED,result);}}
 }

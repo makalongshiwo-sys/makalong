@@ -1,6 +1,6 @@
 from pathlib import Path
 import subprocess,sys,shutil,zipfile
-root=Path(__file__).resolve().parents[1];sdk=Path(sys.argv[1]).resolve();key=Path(sys.argv[2]).resolve();bt=sdk/'android-16';jar=sdk/'android-36/android.jar';out=root/'out/instrumentation';out.mkdir(parents=True,exist_ok=True)
+root=Path(__file__).resolve().parents[1];sdk=Path(sys.argv[1]).resolve();key=Path(sys.argv[2]).resolve();bt=next(p for p in [sdk/'build-tools/36.0.0',sdk/'android-16'] if p.exists());jar=next(p for p in [sdk/'platforms/android-36/android.jar',sdk/'android-36/android.jar'] if p.exists());out=root/'out/instrumentation';out.mkdir(parents=True,exist_ok=True)
 def run(*args):subprocess.run([str(x) for x in args],check=True,cwd=root)
 for name in ['classes','dex']:(out/name).mkdir(exist_ok=True)
 run(bt/'aapt2','link','-o',out/'base.apk','--manifest',root/'tests/android/AndroidManifest.xml','-I',jar)
